@@ -536,8 +536,8 @@ jump_statement
 	;
 
 translation_unit
-	: external_declaration {$$ = new ASTNode(); root = $$;}
-	| translation_unit external_declaration {}
+	: external_declaration 							{ $$ = new ASTNode(); root = $$; }
+	| translation_unit external_declaration 		{ $$ = new ASTNode(); }
 	;
 
 external_declaration
