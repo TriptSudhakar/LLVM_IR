@@ -1,6 +1,9 @@
 %{
 #include <cstdio>
 #include <iostream>
+
+#include "ASTNode.hpp"
+
 using namespace std;
 
 // stuff from flex that bison needs to know about:
@@ -10,23 +13,18 @@ extern "C" FILE *yyin;
  
 void yyerror(const char *s);
 
-typedef struct ASTNode {
-    char* type;           // Type of node (e.g., "expression", "statement", etc.)
-    char* value;          // Value associated with the node (e.g., for identifiers or constants)
-    struct ASTNode** children;  // Array of pointers to child nodes
-    int num_children;     // Number of children
-} ASTNode;
+ASTNode* root;
 
-// Function to create a new AST node
-ASTNode* create_ast_node(char* type, char* value, int num_children) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    node->type = type;
-    node->value = value;
-    node->num_children = num_children;
-    node->children = malloc(num_children * sizeof(ASTNode*));
-    return node;
-}
+
 %}
+
+
+%union{
+	ASTNode* ast_node;
+}
+
+// %parse-param {ASTNode **root}
+
 %token	IDENTIFIER I_CONSTANT F_CONSTANT STRING_LITERAL FUNC_NAME SIZEOF
 %token	PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token	AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
@@ -44,14 +42,19 @@ ASTNode* create_ast_node(char* type, char* value, int num_children) {
 
 %token	ALIGNAS ALIGNOF ATOMIC GENERIC NORETURN STATIC_ASSERT THREAD_LOCAL
 
+%type <ast_node> primary_expression constant enumeration_constant string translation_unit
+
 %start translation_unit
+
 %%
-// to check
+
+
 primary_expression
-	: IDENTIFIER 							{ $$ = create_ast_node("identifier",$1,0); }
-	| string 								{ $$ = create_ast_node("string",$1,0); }
-	| '(' expression ')' 					{ $$ = $1; }
-	| generic_selection						{ $$ = $1; }
+	: IDENTIFIER			
+	| constant
+	| string
+	| '(' expression ')'
+	| generic_selection
 	;
 
 constant
@@ -184,8 +187,8 @@ logical_or_expression
 	;
 
 conditional_expression
-	: logical_or_expression													{ $$ = create_ast_node("logical_or_expression",NULL); }
-	| logical_or_expression '?' expression ':' conditional_expression		{}
+	: logical_or_expression
+	| logical_or_expression '?' expression ':' conditional_expression
 	;
 
 assignment_expression
@@ -194,22 +197,22 @@ assignment_expression
 	;
 
 assignment_operator
-	: '='						{ $$ = create_ast_node("assign","=",0); }
-	| MUL_ASSIGN				{ $$ = create_ast_node("mul_assign","*=",0); }
-	| DIV_ASSIGN				{ $$ = create_ast_node("div_assign","/=",0); }
-	| MOD_ASSIGN				{ $$ = create_ast_node("mod_assign","%=",0); }
-	| ADD_ASSIGN				{ $$ = create_ast_node("add_assign","+=",0); }
-	| SUB_ASSIGN				{ $$ = create_ast_node("sub_assign","-=",0); }
-	| LEFT_ASSIGN				{ $$ = create_ast_node("left_assign","<<=",0); }
-	| RIGHT_ASSIGN				{ $$ = create_ast_node("right_assign",">>=",0); }
-	| AND_ASSIGN				{ $$ = create_ast_node("and_assign","&=",0); }
-	| XOR_ASSIGN				{ $$ = create_ast_node("xor_assign","^=",0); }
-	| OR_ASSIGN					{ $$ = create_ast_node("or_assign","|=",0); }
+	: '='
+	| MUL_ASSIGN
+	| DIV_ASSIGN
+	| MOD_ASSIGN
+	| ADD_ASSIGN
+	| SUB_ASSIGN
+	| LEFT_ASSIGN
+	| RIGHT_ASSIGN
+	| AND_ASSIGN
+	| XOR_ASSIGN
+	| OR_ASSIGN
 	;
 
 expression
-	: assignment_expression									{ $$ = create_ast_node("assignment_expression",NULL,1); $$->children[0] = $1; }
-	| expression ',' assignment_expression					{ $$ = create_ast_node("expression",NULL,2); $$->children[0] = $1; $$->children[1] = $3; }
+	: assignment_expression
+	| expression ',' assignment_expression
 	;
 
 constant_expression
@@ -533,8 +536,8 @@ jump_statement
 	;
 
 translation_unit
-	: external_declaration
-	| translation_unit external_declaration
+	: external_declaration {$$ = new ASTNode(); root = $$;}
+	| translation_unit external_declaration {}
 	;
 
 external_declaration
