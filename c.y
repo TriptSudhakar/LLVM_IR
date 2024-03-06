@@ -13,7 +13,7 @@ extern "C" FILE *yyin;
  
 void yyerror(const char *s);
 
-ASTNode* root;
+ASTNode* root = NULL;
 
 
 %}
@@ -42,8 +42,14 @@ ASTNode* root;
 
 %token	ALIGNAS ALIGNOF ATOMIC GENERIC NORETURN STATIC_ASSERT THREAD_LOCAL
 
-%type <ast_node> primary_expression constant enumeration_constant string translation_unit
-
+%type <ast_node> translation_unit external_declaration function_definition
+%type <ast_node> declaration_specifiers declarator declaration_list compound_statement
+%type <ast_node> block_item block_item_list declaration statement
+%type <ast_node> labeled_statement expression_statement selection_statement iteration_statement jump_statement
+%type <ast_node> expression assignment_expression assignment_operator
+%type <ast_node> conditional_expression logical_or_expression logical_and_expression 
+%type <ast_node> inclusive_or_expression exclusive_or_expression and_expression equality_expression relational_expression shift_expression additive_expression
+%type <ast_node> unary_expression
 %start translation_unit
 
 %%
@@ -177,42 +183,42 @@ inclusive_or_expression
 	;
 
 logical_and_expression
-	: inclusive_or_expression
-	| logical_and_expression AND_OP inclusive_or_expression
+	: inclusive_or_expression													{ $$ = new ASTNode(Boolean_Expression); $$->m_value = "AND"; $$->pushChild($1); }
+	| logical_and_expression AND_OP inclusive_or_expression						{ $$ = $1; $$->pushChild($3); }
 	;
 
 logical_or_expression
-	: logical_and_expression
-	| logical_or_expression OR_OP logical_and_expression
+	: logical_and_expression													{ $$ = new ASTNode(Boolean_Expression); $$->m_value = "AND"; $$->pushChild($1); }
+	| logical_or_expression OR_OP logical_and_expression						{ $$ = $1; $$->pushChild($3); }
 	;
 
 conditional_expression
-	: logical_or_expression
-	| logical_or_expression '?' expression ':' conditional_expression
+	: logical_or_expression														{ $$ = $1; }
+	| logical_or_expression '?' expression ':' conditional_expression			{ $$ = new ASTNode(Conditional_Expression); $$->pushChild($1); $$->pushChild($3); $$->pushChild($5); }
 	;
 
 assignment_expression
-	: conditional_expression
-	| unary_expression assignment_operator assignment_expression
+	: conditional_expression													{ $$ = $1; }
+	| unary_expression assignment_operator assignment_expression				{ $$ = new ASTNode(Assignment_Expression); $$->pushChild($1); $$->pushChild($2); $$->pushChild($3); }
 	;
 
 assignment_operator
-	: '='
-	| MUL_ASSIGN
-	| DIV_ASSIGN
-	| MOD_ASSIGN
-	| ADD_ASSIGN
-	| SUB_ASSIGN
-	| LEFT_ASSIGN
-	| RIGHT_ASSIGN
-	| AND_ASSIGN
-	| XOR_ASSIGN
-	| OR_ASSIGN
+	: '='					{ $$ = new ASTNode(Assignment_Operator); $$->m_value = "="; }
+	| MUL_ASSIGN			{ $$ = new ASTNode(Assignment_Operator); $$->m_value = "*="; }
+	| DIV_ASSIGN			{ $$ = new ASTNode(Assignment_Operator); $$->m_value = "/="; }
+	| MOD_ASSIGN			{ $$ = new ASTNode(Assignment_Operator); $$->m_value = "%="; }
+	| ADD_ASSIGN			{ $$ = new ASTNode(Assignment_Operator); $$->m_value = "+="; }
+	| SUB_ASSIGN			{ $$ = new ASTNode(Assignment_Operator); $$->m_value = "-="; }
+	| LEFT_ASSIGN			{ $$ = new ASTNode(Assignment_Operator); $$->m_value = "<<="; }
+	| RIGHT_ASSIGN			{ $$ = new ASTNode(Assignment_Operator); $$->m_value = ">>="; }
+	| AND_ASSIGN			{ $$ = new ASTNode(Assignment_Operator); $$->m_value = "&="; }
+	| XOR_ASSIGN			{ $$ = new ASTNode(Assignment_Operator); $$->m_value = "^="; }
+	| OR_ASSIGN				{ $$ = new ASTNode(Assignment_Operator); $$->m_value = "|="; }
 	;
 
 expression
-	: assignment_expression
-	| expression ',' assignment_expression
+	: assignment_expression							{ $$ = new ASTNode(Expression); $$->pushChild($1); }
+	| expression ',' assignment_expression			{ $$ = $1; $$->pushChild($3); }
 	;
 
 constant_expression
@@ -478,12 +484,12 @@ static_assert_declaration
 	;
 
 statement
-	: labeled_statement
-	| compound_statement
-	| expression_statement
-	| selection_statement
-	| iteration_statement
-	| jump_statement
+	: labeled_statement					{ $$ = $1; }
+	| compound_statement				{ $$ = $1; }
+	| expression_statement				{ $$ = $1; }
+	| selection_statement				{ $$ = $1; }
+	| iteration_statement				{ $$ = $1; }
+	| jump_statement					{ $$ = $1; }
 	;
 
 labeled_statement
@@ -493,23 +499,23 @@ labeled_statement
 	;
 
 compound_statement
-	: '{' '}'
-	| '{'  block_item_list '}'
+	: '{' '}'							{ $$ = NULL; }
+	| '{'  block_item_list '}'			{ $$ = $2; }
 	;
 
 block_item_list
-	: block_item
-	| block_item_list block_item
+	: block_item						{ $$ = new ASTNode(Block); $$->pushChild($1); }
+	| block_item_list block_item		{ $$ = $1; $$->pushChild($2); }
 	;
 
 block_item
-	: declaration
-	| statement
+	: declaration						{ $$ = $1; }
+	| statement							{ $$ = $1; }
 	;
 
 expression_statement
-	: ';'
-	| expression ';'
+	: ';'								{ $$ = NULL; }
+	| expression ';'					{ $$ = $1; }
 	;
 
 selection_statement
@@ -528,26 +534,26 @@ iteration_statement
 	;
 
 jump_statement
-	: GOTO IDENTIFIER ';'
-	| CONTINUE ';'
-	| BREAK ';'
-	| RETURN ';'
-	| RETURN expression ';'
+	: GOTO IDENTIFIER ';'				{ $$ = new ASTNode(Jump_Statement); $$->m_value = "GOTO"; } // incomplete; how to fetch string correspongind to identifier???
+	| CONTINUE ';'						{ $$ = new ASTNode(Jump_Statement); $$->m_value = "CONTINUE"; }	
+	| BREAK ';'							{ $$ = new ASTNode(Jump_Statement); $$->m_value = "BREAK"; }
+	| RETURN ';'						{ $$ = new ASTNode(Jump_Statement); $$->m_value = "RETURN"; }
+	| RETURN expression ';'				{ $$ = new ASTNode(Jump_Statement); $$->m_value = "RETURN"; $$->pushChild($2); }
 	;
 
 translation_unit
-	: external_declaration 							{ $$ = new ASTNode(); root = $$; }
-	| translation_unit external_declaration 		{ $$ = new ASTNode(); }
+	: external_declaration 							{ $$ = new ASTNode(Begin); $$->pushChild($1); root = $$; }
+	| translation_unit external_declaration 		{ $$ = $1; $$->pushChild($2); }
 	;
 
 external_declaration
-	: function_definition
-	| declaration
+	: function_definition							{ $$ = $1; }
+	| declaration									{ $$ = $1; }		
 	;
 
 function_definition
-	: declaration_specifiers declarator declaration_list compound_statement
-	| declaration_specifiers declarator compound_statement
+	: declaration_specifiers declarator declaration_list compound_statement		{ $$ = new ASTNode(Function); $$->pushChild($1); $$->pushChild($2); $$->pushChild($3); $$->pushChild($4); }
+	| declaration_specifiers declarator compound_statement						{ $$ = new ASTNode(Function); $$->pushChild($1); $$->pushChild($2); $$->pushChild($3); }
 	;
 
 declaration_list

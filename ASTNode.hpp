@@ -3,7 +3,21 @@
 #include <iostream> 
 
 enum NodeType {
-    Begin
+    Begin,
+    Function,
+    Block,
+    Declaration,
+    Jump_Statement,
+    Iteration_Statement,
+    Expression_Statement,
+    Selection_Statement,
+    Labeled_Statement,
+    Identifier,
+    Expression,
+    Assignment_Expression,
+    Conditional_Expression,
+    Assignment_Operator,
+    Boolean_Expression
 };
 
 
@@ -14,11 +28,11 @@ class ASTNode {
     std::vector<ASTNode*> m_children;
 
 
-    // ASTNode() {};
+    ASTNode() {};
     
-    // ASTNode(NodeType type) : 
-    //     m_type (type) {};
-
+    ASTNode(NodeType type) : 
+        m_type (type) {};
+    
     // ASTNode(NodeType type, std::string& value, std::vector<ASTNode*> children) : 
     //     m_type (type), 
     //     m_value (value), 
