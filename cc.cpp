@@ -4,6 +4,8 @@
 #include "ASTNode.hpp"
 #include "c.tab.hpp"
 
+#include <vector> 
+
 
 extern "C" int yylex();
 int yyparse();
@@ -65,29 +67,54 @@ std::vector<std::string> nodeTypetoString{
 };
 
 
-void printHelper(ASTNode* node, int n){
+void printHelper(ASTNode* node, int n, std::vector<int>& formattingVector){
     std::string formatter = "";
+
+    while (formattingVector.size() <= n){
+      // formattingVector.push_back((node->m_children).size());
+      formattingVector.push_back(0);
+    }
+
+    formattingVector[n] = (node->m_children).size(); 
+
+
     for(int i = 0; i < n; i++){
-        formatter.push_back('|');
+
+        if (formattingVector[i] > 0){
+          formatter.push_back('|');
+        }
+        else{
+          formatter.push_back(' ');
+        }
+
+
         if (i == n - 1){
           formatter.push_back('-');
-          continue;
         }
-        formatter.push_back(' ');
+        else{
+          formatter.push_back(' ');
+        }
     }
+
     std::cout << formatter;
     std::cout << nodeTypetoString[node->m_type];
     if (node->m_value != "") std::cout << "    " << "(" << node->m_value << ")";
     std::cout << std::endl;
+
+
+    formattingVector[n-1] -= 1;
+
+
     for(auto x:(node -> m_children)){
-        printHelper(x, n+1);
+        printHelper(x, n+1, formattingVector);
     }
 }
 
-void print(ASTNode* node){
-    printHelper(node, 0);
-}
 
+void print(ASTNode* node){
+    std::vector<int> formattingVector;
+    printHelper(node, 0, formattingVector);
+}
 
 
 int
