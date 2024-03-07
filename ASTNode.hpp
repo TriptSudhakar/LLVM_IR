@@ -1,10 +1,18 @@
 #include <string> 
 #include <vector> 
 #include <iostream> 
+#include <map> 
 
 enum NodeType {
     Begin,
-    Function,
+    External_Declaration,
+    Function_Definition,
+    Declaration_Specifiers,
+    Storage_Class_Specifier,
+    Type_Specifier, 
+    Type_Qualifier, 
+    Function_Specifier, 
+    Alignment_Specifier,
     Block,
     Declaration,
     Jump_Statement,
@@ -19,6 +27,25 @@ enum NodeType {
     Assignment_Operator,
     Boolean_Expression
 };
+
+
+// std::vector<std::string> nodeTypetoString{
+//     "Begin",
+//     "Function",
+//     "Block",
+//     "Declaration",
+//     "Jump_Statement",
+//     "Iteration_Statement",
+//     "Expression_Statement",
+//     "Selection_Statement",
+//     "Labeled_Statement",
+//     "Identifier",
+//     "Expression",
+//     "Assignment_Expression",
+//     "Conditional_Expression",
+//     "Assignment_Operator",
+//     "Boolean_Expression"
+// };
 
 
 class ASTNode {
@@ -50,6 +77,11 @@ class ASTNode {
 
     void print(){
         std::cout << "hello" << std::endl;
+        std::cout << m_children.size() << std::endl;
+        // std::cout << nodeTypetoString[m_type] << std::endl;
+        for(auto x:m_children){
+            x->print();
+        }
     }
     
 };

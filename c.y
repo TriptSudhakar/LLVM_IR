@@ -43,7 +43,7 @@ ASTNode* root = NULL;
 %token	ALIGNAS ALIGNOF ATOMIC GENERIC NORETURN STATIC_ASSERT THREAD_LOCAL
 
 %type <ast_node> translation_unit external_declaration function_definition
-%type <ast_node> declaration_specifiers declarator declaration_list compound_statement
+%type <ast_node> declaration_specifiers declarator declaration_list compound_statement storage_class_specifier type_specifier
 %type <ast_node> block_item block_item_list declaration statement
 %type <ast_node> labeled_statement expression_statement selection_statement iteration_statement jump_statement
 %type <ast_node> expression assignment_expression assignment_operator
@@ -218,7 +218,7 @@ assignment_operator
 
 expression
 	: assignment_expression							{ $$ = new ASTNode(Expression); $$->pushChild($1); }
-	| expression ',' assignment_expression			{ $$ = $1; $$->pushChild($3); }
+	| expression ',' assignment_expression			{ $$ = new ASTNode(Expression); $$->pushChild($1); $$->pushChild($3); }
 	;
 
 constant_expression
@@ -232,10 +232,10 @@ declaration
 	;
 
 declaration_specifiers
-	: storage_class_specifier declaration_specifiers
-	| storage_class_specifier
-	| type_specifier declaration_specifiers
-	| type_specifier
+	: storage_class_specifier declaration_specifiers  		{ $$ = new ASTNode(Declaration_Specifiers); $$->pushChild($1); $$->pushChild($2); }
+	| storage_class_specifier 								{ $$ = new ASTNode(Declaration_Specifiers); $$->pushChild($1); }
+	| type_specifier declaration_specifiers   				{ $$ = new ASTNode(Declaration_Specifiers); $$->pushChild($1); $$->pushChild($2); }
+	| type_specifier										{ $$ = new ASTNode(Declaration_Specifiers); $$->pushChild($1); }
 	| type_qualifier declaration_specifiers
 	| type_qualifier
 	| function_specifier declaration_specifiers
@@ -543,17 +543,17 @@ jump_statement
 
 translation_unit
 	: external_declaration 							{ $$ = new ASTNode(Begin); $$->pushChild($1); root = $$; }
-	| translation_unit external_declaration 		{ $$ = $1; $$->pushChild($2); }
+	| translation_unit external_declaration 		{ $$ = new ASTNode(Begin); $$->pushChild($1); $$->pushChild($2); }
 	;
 
 external_declaration
-	: function_definition							{ $$ = $1; }
-	| declaration									{ $$ = $1; }		
+	: function_definition							{ $$ = new ASTNode(External_Declaration); $$->pushChild($1); }
+	| declaration									{ $$ = new ASTNode(External_Declaration); $$->pushChild($1); }		
 	;
 
 function_definition
-	: declaration_specifiers declarator declaration_list compound_statement		{ $$ = new ASTNode(Function); $$->pushChild($1); $$->pushChild($2); $$->pushChild($3); $$->pushChild($4); }
-	| declaration_specifiers declarator compound_statement						{ $$ = new ASTNode(Function); $$->pushChild($1); $$->pushChild($2); $$->pushChild($3); }
+	: declaration_specifiers declarator declaration_list compound_statement		{ $$ = new ASTNode(Function_Definition); $$->pushChild($1); $$->pushChild($2); $$->pushChild($3); $$->pushChild($4); }
+	| declaration_specifiers declarator compound_statement						{ $$ = new ASTNode(Function_Definition); $$->pushChild($1); $$->pushChild($2); $$->pushChild($3); }
 	;
 
 declaration_list
