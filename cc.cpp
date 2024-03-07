@@ -102,7 +102,7 @@ void printHelper(ASTNode* node, int n, std::vector<int>& formattingVector){
     std::cout << std::endl;
 
 
-    formattingVector[n-1] -= 1;
+    if(n>1) formattingVector[n-1] -= 1;
 
 
     for(auto x:(node -> m_children)){
