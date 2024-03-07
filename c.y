@@ -42,14 +42,15 @@ ASTNode* root = NULL;
 
 %token	ALIGNAS ALIGNOF ATOMIC GENERIC NORETURN STATIC_ASSERT THREAD_LOCAL
 
-%type <ast_node> translation_unit external_declaration function_definition
-%type <ast_node> declaration_specifiers declarator declaration_list compound_statement storage_class_specifier type_specifier
-%type <ast_node> block_item block_item_list declaration statement
+%type <ast_node> translation_unit external_declaration function_definition init_declarator_list static_assert_declaration
+%type <ast_node> declaration_specifiers  declaration_list compound_statement storage_class_specifier type_specifier atomic_type_specifier struct_or_union_specifier enum_specifier direct_declarator pointer declarator
+%type <ast_node> block_item block_item_list declaration statement 
 %type <ast_node> labeled_statement expression_statement selection_statement iteration_statement jump_statement
 %type <ast_node> expression assignment_expression assignment_operator
 %type <ast_node> conditional_expression logical_or_expression logical_and_expression 
 %type <ast_node> inclusive_or_expression exclusive_or_expression and_expression equality_expression relational_expression shift_expression additive_expression
 %type <ast_node> unary_expression
+
 %start translation_unit
 
 %%
@@ -226,9 +227,9 @@ constant_expression
 	;
 
 declaration
-	: declaration_specifiers ';'
-	| declaration_specifiers init_declarator_list ';'
-	| static_assert_declaration
+	: declaration_specifiers ';'  							{ $$ = new ASTNode(Declaration); $$->pushChild($1); } 
+	| declaration_specifiers init_declarator_list ';' 		{ $$ = new ASTNode(Declaration); $$->pushChild($1); $$->pushChild($2); } 
+	| static_assert_declaration								{ $$ = new ASTNode(Declaration); $$->pushChild($1); }	
 	;
 
 declaration_specifiers
@@ -264,22 +265,22 @@ storage_class_specifier
 	;
 
 type_specifier
-	: VOID
-	| CHAR
-	| SHORT
-	| INT
-	| LONG
-	| FLOAT
-	| DOUBLE
-	| SIGNED
-	| UNSIGNED
-	| BOOL
-	| COMPLEX
-	| IMAGINARY	  	/* non-mandated extension */
-	| atomic_type_specifier
-	| struct_or_union_specifier
-	| enum_specifier
-	| TYPEDEF_NAME		/* after it has been defined as such */
+	: VOID						{ $$ = new ASTNode(Type_Specifier); $$->m_value = "VOID"; }
+	| CHAR						{ $$ = new ASTNode(Type_Specifier); $$->m_value = "CHAR"; }
+	| SHORT						{ $$ = new ASTNode(Type_Specifier); $$->m_value = "SHORT"; }
+	| INT						{ $$ = new ASTNode(Type_Specifier); $$->m_value = "INT"; }
+	| LONG						{ $$ = new ASTNode(Type_Specifier); $$->m_value = "LONG"; }
+	| FLOAT						{ $$ = new ASTNode(Type_Specifier); $$->m_value = "FLOAT"; }
+	| DOUBLE					{ $$ = new ASTNode(Type_Specifier); $$->m_value = "DOUBLE"; }
+	| SIGNED					{ $$ = new ASTNode(Type_Specifier); $$->m_value = "SIGNED"; }
+	| UNSIGNED					{ $$ = new ASTNode(Type_Specifier); $$->m_value = "UNSIGNED"; }
+	| BOOL						{ $$ = new ASTNode(Type_Specifier); $$->m_value = "BOOL"; }
+	| COMPLEX					{ $$ = new ASTNode(Type_Specifier); $$->m_value = "COMPLEX"; }
+	| IMAGINARY	  				{ $$ = new ASTNode(Type_Specifier); $$->m_value = "IMAGINARY"; }
+	| atomic_type_specifier		{ $$ = new ASTNode(Type_Specifier); $$->pushChild($1); }
+	| struct_or_union_specifier	{ $$ = new ASTNode(Type_Specifier); $$->pushChild($1); }
+	| enum_specifier			{ $$ = new ASTNode(Type_Specifier); $$->pushChild($1); }
+	| TYPEDEF_NAME				{ $$ = new ASTNode(Type_Specifier); $$->m_value = "TYPEDEF_NAME"; }
 	;
 
 struct_or_union_specifier
@@ -362,14 +363,14 @@ alignment_specifier
 	;
 
 declarator
-	: pointer direct_declarator
-	| direct_declarator
+	: pointer direct_declarator 		{ $$ = new ASTNode(Declarator); $$->pushChild($1); $$->pushChild($2); }
+	| direct_declarator					{ $$ = new ASTNode(Declarator); $$->pushChild($1); }
 	;
 
 direct_declarator
-	: IDENTIFIER
-	| '(' declarator ')'
-	| direct_declarator '[' ']'
+	: IDENTIFIER																		{ $$ = new ASTNode(Direct_Declarator); $$->m_value = "IDENTIFIER"; }				
+	| '(' declarator ')'																{ $$ = new ASTNode(Direct_Declarator); $$->pushChild($2); }
+	| direct_declarator '[' ']'															{ $$ = new ASTNode(Direct_Declarator); $$->pushChild($1);}
 	| direct_declarator '[' '*' ']'
 	| direct_declarator '[' STATIC type_qualifier_list assignment_expression ']'
 	| direct_declarator '[' STATIC assignment_expression ']'
@@ -499,8 +500,8 @@ labeled_statement
 	;
 
 compound_statement
-	: '{' '}'							{ $$ = NULL; }
-	| '{'  block_item_list '}'			{ $$ = $2; }
+	: '{' '}'							{ $$ = new ASTNode(Compound_Statement); $$->m_value = ""; }
+	| '{'  block_item_list '}'			{ $$ = new ASTNode(Compound_Statement); $$->pushChild($2); }
 	;
 
 block_item_list

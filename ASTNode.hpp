@@ -8,13 +8,16 @@ enum NodeType {
     External_Declaration,
     Function_Definition,
     Declaration_Specifiers,
+    Declaration,
     Storage_Class_Specifier,
     Type_Specifier, 
+    Declarator,
+    Direct_Declarator,
+    Compound_Statement,
     Type_Qualifier, 
     Function_Specifier, 
     Alignment_Specifier,
     Block,
-    Declaration,
     Jump_Statement,
     Iteration_Statement,
     Expression_Statement,
@@ -75,14 +78,28 @@ class ASTNode {
         }
     }
 
-    void print(){
-        std::cout << "hello" << std::endl;
+    
+
+    void printHelper(int n){
+        std::string formatter = "";
+        for(int i = 0; i < n; i++){
+            formatter.push_back('\t');
+        }
+        std::cout << formatter;
+        std::cout << m_type << std::endl;
+        std::cout << formatter;
         std::cout << m_children.size() << std::endl;
-        // std::cout << nodeTypetoString[m_type] << std::endl;
+        if (m_value != "") std::cout << formatter << m_value << std::endl;
         for(auto x:m_children){
-            x->print();
+            x->printHelper(n+1);
         }
     }
+
+    void print(){
+        printHelper(0);
+    }
+
+
     
 };
 
