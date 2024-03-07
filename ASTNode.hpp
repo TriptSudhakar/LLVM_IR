@@ -14,6 +14,7 @@ enum NodeType {
     Declarator,
     Direct_Declarator,
     Compound_Statement,
+    Statement,
     Type_Qualifier, 
     Function_Specifier, 
     Alignment_Specifier,
@@ -23,32 +24,36 @@ enum NodeType {
     Expression_Statement,
     Selection_Statement,
     Labeled_Statement,
-    Identifier,
     Expression,
     Assignment_Expression,
     Conditional_Expression,
     Assignment_Operator,
-    Boolean_Expression
+    Logical_Or_Expression,
+    Logical_And_Expression,
+    Inclusive_Or_Expression,
+    Exclusive_Or_Expression,
+    And_Expression,
+    Equality_Expression,
+    Relational_Expression,
+    Shift_Expression,
+    Additive_Expression,
+    Multiplicative_Expression,
+    Cast_Expression,
+    Unary_Expression, 
+    Postfix_Expression,
+    Unary_Operator,
+    Primary_Expression,
+    Identifier_List,
+    Identifier,
+    Argument_Expression_List,
+    Constant,
+    I_Constant,
+    F_Constant,
+    String
 };
 
 
-// std::vector<std::string> nodeTypetoString{
-//     "Begin",
-//     "Function",
-//     "Block",
-//     "Declaration",
-//     "Jump_Statement",
-//     "Iteration_Statement",
-//     "Expression_Statement",
-//     "Selection_Statement",
-//     "Labeled_Statement",
-//     "Identifier",
-//     "Expression",
-//     "Assignment_Expression",
-//     "Conditional_Expression",
-//     "Assignment_Operator",
-//     "Boolean_Expression"
-// };
+
 
 
 class ASTNode {
@@ -83,12 +88,11 @@ class ASTNode {
     void printHelper(int n){
         std::string formatter = "";
         for(int i = 0; i < n; i++){
-            formatter.push_back('\t');
+            formatter.push_back(' ');
+            formatter.push_back(' ');
         }
         std::cout << formatter;
-        std::cout << m_type << std::endl;
-        std::cout << formatter;
-        std::cout << m_children.size() << std::endl;
+        std::cout << m_type;
         if (m_value != "") std::cout << formatter << m_value << std::endl;
         for(auto x:m_children){
             x->printHelper(n+1);

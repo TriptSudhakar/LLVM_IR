@@ -21,35 +21,38 @@ ASTNode* root = NULL;
 
 %union{
 	ASTNode* ast_node;
+	char* str;
 }
 
 // %parse-param {ASTNode **root}
 
-%token	IDENTIFIER I_CONSTANT F_CONSTANT STRING_LITERAL FUNC_NAME SIZEOF
-%token	PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
-%token	AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
-%token	SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
-%token	XOR_ASSIGN OR_ASSIGN
-%token	TYPEDEF_NAME ENUMERATION_CONSTANT
+%token <str> IDENTIFIER I_CONSTANT
+%token F_CONSTANT STRING_LITERAL FUNC_NAME SIZEOF
+%token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
+%token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
+%token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
+%token XOR_ASSIGN OR_ASSIGN
+%token TYPEDEF_NAME ENUMERATION_CONSTANT
 
-%token	TYPEDEF EXTERN STATIC AUTO REGISTER INLINE
-%token	CONST RESTRICT VOLATILE
-%token	BOOL CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
-%token	COMPLEX IMAGINARY 
-%token	STRUCT UNION ENUM ELLIPSIS
+%token TYPEDEF EXTERN STATIC AUTO REGISTER INLINE
+%token CONST RESTRICT VOLATILE
+%token BOOL CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
+%token COMPLEX IMAGINARY 
+%token STRUCT UNION ENUM ELLIPSIS
 
-%token	CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
+%token CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
 
-%token	ALIGNAS ALIGNOF ATOMIC GENERIC NORETURN STATIC_ASSERT THREAD_LOCAL
+%token ALIGNAS ALIGNOF ATOMIC GENERIC NORETURN STATIC_ASSERT THREAD_LOCAL
 
 %type <ast_node> translation_unit external_declaration function_definition init_declarator_list static_assert_declaration
-%type <ast_node> declaration_specifiers  declaration_list compound_statement storage_class_specifier type_specifier atomic_type_specifier struct_or_union_specifier enum_specifier direct_declarator pointer declarator
-%type <ast_node> block_item block_item_list declaration statement 
+%type <ast_node> declaration_specifiers  declaration_list compound_statement storage_class_specifier type_specifier atomic_type_specifier struct_or_union_specifier enum_specifier direct_declarator pointer declarator type_qualifier_list parameter_type_list identifier_list 
+%type <ast_node> block_item block_item_list declaration statement type_qualifier function_specifier alignment_specifier
 %type <ast_node> labeled_statement expression_statement selection_statement iteration_statement jump_statement
 %type <ast_node> expression assignment_expression assignment_operator
 %type <ast_node> conditional_expression logical_or_expression logical_and_expression 
-%type <ast_node> inclusive_or_expression exclusive_or_expression and_expression equality_expression relational_expression shift_expression additive_expression
-%type <ast_node> unary_expression
+%type <ast_node> inclusive_or_expression exclusive_or_expression and_expression equality_expression relational_expression shift_expression additive_expression multiplicative_expression
+%type <ast_node> unary_expression cast_expression type_name postfix_expression primary_expression initializer_list unary_operator argument_expression_list
+%type <ast_node> generic_selection constant string
 
 %start translation_unit
 
@@ -57,17 +60,17 @@ ASTNode* root = NULL;
 
 
 primary_expression
-	: IDENTIFIER			
-	| constant
-	| string
-	| '(' expression ')'
-	| generic_selection
+	: IDENTIFIER					{ $$ = new ASTNode(Identifier); $$->m_value = yylval.str; }
+	| constant						{ $$ = $1; }
+	| string						{ $$ = new ASTNode(String); $$->pushChild($1); }
+	| '(' expression ')'			{ $$ = $2; }
+	| generic_selection				{ $$ = $1; }
 	;
 
 constant
-	: I_CONSTANT		/* includes character_constant */
-	| F_CONSTANT
-	| ENUMERATION_CONSTANT	/* after it has been defined as such */
+	: I_CONSTANT					{ $$ = new ASTNode(I_Constant); $$->m_value = yylval.str; } /* includes character_constant */
+	| F_CONSTANT					{ $$ = new ASTNode(Constant); $$->m_value = "F_CONSTANT"; }     // s. do this later
+	| ENUMERATION_CONSTANT			{ $$ = new ASTNode(Constant); $$->m_value = "ENUMERATION_CONSTANT";  } /* after it has been defined as such */
 	;
 
 enumeration_constant		/* before it has been defined as such */
@@ -94,112 +97,112 @@ generic_association
 	;
 
 postfix_expression
-	: primary_expression
-	| postfix_expression '[' expression ']'
-	| postfix_expression '(' ')'
-	| postfix_expression '(' argument_expression_list ')'
-	| postfix_expression '.' IDENTIFIER
-	| postfix_expression PTR_OP IDENTIFIER
-	| postfix_expression INC_OP
-	| postfix_expression DEC_OP
-	| '(' type_name ')' '{' initializer_list '}'
-	| '(' type_name ')' '{' initializer_list ',' '}'
+	: primary_expression												{ $$ = new ASTNode(Primary_Expression); $$->pushChild($1); }
+	| postfix_expression '[' expression ']'								{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->pushChild($3); }							
+	| postfix_expression '(' ')'										{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->m_value = "()"; }
+	| postfix_expression '(' argument_expression_list ')'				{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->pushChild($3); }
+	| postfix_expression '.' IDENTIFIER									{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->m_value = ". IDENTIFIER"; }
+	| postfix_expression PTR_OP IDENTIFIER								{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->m_value = "PTR_OP IDENTIFIER"; }
+	| postfix_expression INC_OP											{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->m_value = "INC_OP"; }
+	| postfix_expression DEC_OP											{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->m_value = "DEC_OP"; }
+	| '(' type_name ')' '{' initializer_list '}'						{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($2); $$->pushChild($5); }
+	| '(' type_name ')' '{' initializer_list ',' '}'					{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($2); $$->pushChild($5); }
 	;
 
 argument_expression_list
-	: assignment_expression
-	| argument_expression_list ',' assignment_expression
+	: assignment_expression												{ $$ = new ASTNode(Argument_Expression_List); $$->pushChild($1); }
+	| argument_expression_list ',' assignment_expression				{ $$ = new ASTNode(Argument_Expression_List); $$->pushChild($1); $$->pushChild($3); }
 	;
 
 unary_expression
-	: postfix_expression
-	| INC_OP unary_expression
-	| DEC_OP unary_expression
-	| unary_operator cast_expression
-	| SIZEOF unary_expression
-	| SIZEOF '(' type_name ')'
-	| ALIGNOF '(' type_name ')'
+	: postfix_expression				{ $$ = new ASTNode(Unary_Expression); $$->pushChild($1); }
+	| INC_OP unary_expression			{ $$ = new ASTNode(Unary_Expression); $$->pushChild($2); $$->m_value = "INC_OP"; }
+	| DEC_OP unary_expression			{ $$ = new ASTNode(Unary_Expression); $$->pushChild($2); $$->m_value = "DEC_OP"; }
+	| unary_operator cast_expression	{ $$ = new ASTNode(Unary_Expression); $$->pushChild($1); $$->pushChild($2); }
+	| SIZEOF unary_expression			{ $$ = new ASTNode(Unary_Expression); $$->pushChild($2); $$->m_value = "SIZEOF"; }
+	| SIZEOF '(' type_name ')'			{ $$ = new ASTNode(Unary_Expression); $$->pushChild($3); $$->m_value = "SIZEOF"; }
+	| ALIGNOF '(' type_name ')'			{ $$ = new ASTNode(Unary_Expression); $$->pushChild($3); $$->m_value = "ALIGNOF"; }
 	;
 
 unary_operator
-	: '&'
-	| '*'
-	| '+'
-	| '-'
-	| '~'
-	| '!'
+	: '&'								{ $$ = new ASTNode(Unary_Operator); $$->m_value = "&"; }
+	| '*'								{ $$ = new ASTNode(Unary_Operator); $$->m_value = "*"; }
+	| '+'								{ $$ = new ASTNode(Unary_Operator); $$->m_value = "+"; }
+	| '-'								{ $$ = new ASTNode(Unary_Operator); $$->m_value = "-"; }
+	| '~'								{ $$ = new ASTNode(Unary_Operator); $$->m_value = "~"; }
+	| '!'								{ $$ = new ASTNode(Unary_Operator); $$->m_value = "!"; }
 	;
 
 cast_expression
-	: unary_expression
-	| '(' type_name ')' cast_expression
+	: unary_expression															{ $$ = new ASTNode(Unary_Expression); $$->pushChild($1); }
+	| '(' type_name ')' cast_expression											{ $$ = new ASTNode(Cast_Expression); $$->pushChild($2); $$->pushChild($4); }
 	;
 
 multiplicative_expression
-	: cast_expression
-	| multiplicative_expression '*' cast_expression
-	| multiplicative_expression '/' cast_expression
-	| multiplicative_expression '%' cast_expression
+	: cast_expression															{ $$ = new ASTNode(Cast_Expression); $$->pushChild($1); }
+	| multiplicative_expression '*' cast_expression								{ $$ = new ASTNode(Multiplicative_Expression); $$->pushChild($1); $$->pushChild($3); $$->m_value = "*"; }
+	| multiplicative_expression '/' cast_expression								{ $$ = new ASTNode(Multiplicative_Expression); $$->pushChild($1); $$->pushChild($3); $$->m_value = "/"; }
+	| multiplicative_expression '%' cast_expression								{ $$ = new ASTNode(Multiplicative_Expression); $$->pushChild($1); $$->pushChild($3); $$->m_value = "%"; }
 	;
 
 additive_expression
-	: multiplicative_expression
-	| additive_expression '+' multiplicative_expression
-	| additive_expression '-' multiplicative_expression
+	: multiplicative_expression													{ $$ = new ASTNode(Multiplicative_Expression); $$->pushChild($1); }
+	| additive_expression '+' multiplicative_expression							{ $$ = new ASTNode(Additive_Expression); $$->pushChild($1); $$->pushChild($3); $$->m_value = "+"; }
+	| additive_expression '-' multiplicative_expression							{ $$ = new ASTNode(Additive_Expression); $$->pushChild($1); $$->pushChild($3); $$->m_value = "-"; }
 	;
 
 shift_expression
-	: additive_expression
-	| shift_expression LEFT_OP additive_expression
-	| shift_expression RIGHT_OP additive_expression
+	: additive_expression														{ $$ = new ASTNode(Additive_Expression); $$->pushChild($1); }
+	| shift_expression LEFT_OP additive_expression								{ $$ = new ASTNode(Shift_Expression); $$->pushChild($1); $$->pushChild($3); $$->m_value = "<<"; }
+	| shift_expression RIGHT_OP additive_expression								{ $$ = new ASTNode(Shift_Expression); $$->pushChild($1); $$->pushChild($3); $$->m_value = ">>"; }
 	;
 
 relational_expression
-	: shift_expression
-	| relational_expression '<' shift_expression
-	| relational_expression '>' shift_expression
-	| relational_expression LE_OP shift_expression
-	| relational_expression GE_OP shift_expression
+	: shift_expression															{ $$ = new ASTNode(Shift_Expression); $$->pushChild($1); }
+	| relational_expression '<' shift_expression								{ $$ = new ASTNode(Relational_Expression); $$->pushChild($1); $$->pushChild($3); $$->m_value = "<"; }
+	| relational_expression '>' shift_expression								{ $$ = new ASTNode(Relational_Expression); $$->pushChild($1); $$->pushChild($3); $$->m_value = ">"; }
+	| relational_expression LE_OP shift_expression								{ $$ = new ASTNode(Relational_Expression); $$->pushChild($1); $$->pushChild($3); $$->m_value = "<="; }
+	| relational_expression GE_OP shift_expression								{ $$ = new ASTNode(Relational_Expression); $$->pushChild($1); $$->pushChild($3); $$->m_value = ">="; }
 	;
 
 equality_expression
-	: relational_expression
-	| equality_expression EQ_OP relational_expression
-	| equality_expression NE_OP relational_expression
+	: relational_expression														{ $$ = new ASTNode(Relational_Expression); $$->pushChild($1); }
+	| equality_expression EQ_OP relational_expression							{ $$ = new ASTNode(Equality_Expression); $$->pushChild($1); $$->pushChild($3); $$->m_value = "=="; }
+	| equality_expression NE_OP relational_expression							{ $$ = new ASTNode(Equality_Expression); $$->pushChild($1); $$->pushChild($3); $$->m_value = "!="; }
 	;
 
 and_expression
-	: equality_expression
-	| and_expression '&' equality_expression
+	: equality_expression														{ $$ = new ASTNode(Equality_Expression); $$->pushChild($1); }
+	| and_expression '&' equality_expression									{ $$ = new ASTNode(And_Expression); $$->pushChild($1); $$->pushChild($3); }
 	;
 
 exclusive_or_expression
-	: and_expression
-	| exclusive_or_expression '^' and_expression
+	: and_expression															{ $$ = new ASTNode(And_Expression); $$->pushChild($1); }
+	| exclusive_or_expression '^' and_expression								{ $$ = new ASTNode(Exclusive_Or_Expression); $$->pushChild($1); $$->pushChild($3); }
 	;
 
 inclusive_or_expression
-	: exclusive_or_expression
-	| inclusive_or_expression '|' exclusive_or_expression
+	: exclusive_or_expression													{ $$ = new ASTNode(Exclusive_Or_Expression); $$->pushChild($1); }
+	| inclusive_or_expression '|' exclusive_or_expression						{ $$ = new ASTNode(Inclusive_Or_Expression); $$->pushChild($1); $$->pushChild($3); }
 	;
 
 logical_and_expression
-	: inclusive_or_expression													{ $$ = new ASTNode(Boolean_Expression); $$->m_value = "AND"; $$->pushChild($1); }
-	| logical_and_expression AND_OP inclusive_or_expression						{ $$ = $1; $$->pushChild($3); }
+	: inclusive_or_expression													{ $$ = new ASTNode(Inclusive_Or_Expression); $$->pushChild($1); }
+	| logical_and_expression AND_OP inclusive_or_expression						{ $$ = new ASTNode(Logical_And_Expression); $$->pushChild($1); $$->pushChild($3); }
 	;
 
 logical_or_expression
-	: logical_and_expression													{ $$ = new ASTNode(Boolean_Expression); $$->m_value = "AND"; $$->pushChild($1); }
-	| logical_or_expression OR_OP logical_and_expression						{ $$ = $1; $$->pushChild($3); }
+	: logical_and_expression													{ $$ = new ASTNode(Logical_And_Expression); $$->pushChild($1); }
+	| logical_or_expression OR_OP logical_and_expression						{ $$ = new ASTNode(Logical_Or_Expression); $$->pushChild($1); $$->pushChild($3); }
 	;
 
 conditional_expression
-	: logical_or_expression														{ $$ = $1; }
+	: logical_or_expression														{ $$ = new ASTNode(Logical_Or_Expression); $$->pushChild($1); }
 	| logical_or_expression '?' expression ':' conditional_expression			{ $$ = new ASTNode(Conditional_Expression); $$->pushChild($1); $$->pushChild($3); $$->pushChild($5); }
 	;
 
 assignment_expression
-	: conditional_expression													{ $$ = $1; }
+	: conditional_expression													{ $$ = new ASTNode(Conditional_Expression); $$->pushChild($1); }
 	| unary_expression assignment_operator assignment_expression				{ $$ = new ASTNode(Assignment_Expression); $$->pushChild($1); $$->pushChild($2); $$->pushChild($3); }
 	;
 
@@ -218,7 +221,7 @@ assignment_operator
 	;
 
 expression
-	: assignment_expression							{ $$ = new ASTNode(Expression); $$->pushChild($1); }
+	: assignment_expression							{ $$ = new ASTNode(Assignment_Expression); $$->pushChild($1); }
 	| expression ',' assignment_expression			{ $$ = new ASTNode(Expression); $$->pushChild($1); $$->pushChild($3); }
 	;
 
@@ -237,12 +240,12 @@ declaration_specifiers
 	| storage_class_specifier 								{ $$ = new ASTNode(Declaration_Specifiers); $$->pushChild($1); }
 	| type_specifier declaration_specifiers   				{ $$ = new ASTNode(Declaration_Specifiers); $$->pushChild($1); $$->pushChild($2); }
 	| type_specifier										{ $$ = new ASTNode(Declaration_Specifiers); $$->pushChild($1); }
-	| type_qualifier declaration_specifiers
-	| type_qualifier
-	| function_specifier declaration_specifiers
-	| function_specifier
-	| alignment_specifier declaration_specifiers
-	| alignment_specifier
+	| type_qualifier declaration_specifiers					{ $$ = new ASTNode(Declaration_Specifiers); $$->pushChild($1); $$->pushChild($2); }	
+	| type_qualifier										{ $$ = new ASTNode(Declaration_Specifiers); $$->pushChild($1); } 
+	| function_specifier declaration_specifiers				{ $$ = new ASTNode(Declaration_Specifiers); $$->pushChild($1); $$->pushChild($2); }
+	| function_specifier									{ $$ = new ASTNode(Declaration_Specifiers); $$->pushChild($1); }
+	| alignment_specifier declaration_specifiers			{ $$ = new ASTNode(Declaration_Specifiers); $$->pushChild($1); $$->pushChild($2); }
+	| alignment_specifier									{ $$ = new ASTNode(Declaration_Specifiers); $$->pushChild($1); }
 	;
 
 init_declarator_list
@@ -368,20 +371,20 @@ declarator
 	;
 
 direct_declarator
-	: IDENTIFIER																		{ $$ = new ASTNode(Direct_Declarator); $$->m_value = "IDENTIFIER"; }				
+	: IDENTIFIER																		{ $$ = new ASTNode(Identifier); $$->m_value = yylval.str; }				
 	| '(' declarator ')'																{ $$ = new ASTNode(Direct_Declarator); $$->pushChild($2); }
-	| direct_declarator '[' ']'															{ $$ = new ASTNode(Direct_Declarator); $$->pushChild($1);}
-	| direct_declarator '[' '*' ']'
-	| direct_declarator '[' STATIC type_qualifier_list assignment_expression ']'
-	| direct_declarator '[' STATIC assignment_expression ']'
-	| direct_declarator '[' type_qualifier_list '*' ']'
-	| direct_declarator '[' type_qualifier_list STATIC assignment_expression ']'
-	| direct_declarator '[' type_qualifier_list assignment_expression ']'
-	| direct_declarator '[' type_qualifier_list ']'
-	| direct_declarator '[' assignment_expression ']'
-	| direct_declarator '(' parameter_type_list ')'
-	| direct_declarator '(' ')'
-	| direct_declarator '(' identifier_list ')'
+	| direct_declarator '[' ']'															{ $$ = new ASTNode(Direct_Declarator); $$->pushChild($1); }
+	| direct_declarator '[' '*' ']'														{ $$ = new ASTNode(Direct_Declarator); $$->pushChild($1); }	
+	| direct_declarator '[' STATIC type_qualifier_list assignment_expression ']'		{ $$ = new ASTNode(Direct_Declarator); $$->pushChild($1); $$->pushChild($4); $$->pushChild($5); $$->m_value = "STATIC"; }
+	| direct_declarator '[' STATIC assignment_expression ']'							{ $$ = new ASTNode(Direct_Declarator); $$->pushChild($1); $$->pushChild($4); $$->m_value = "STATIC"; }
+	| direct_declarator '[' type_qualifier_list '*' ']'									{ $$ = new ASTNode(Direct_Declarator); $$->pushChild($1); $$->pushChild($3); $$->m_value = "*"; }
+	| direct_declarator '[' type_qualifier_list STATIC assignment_expression ']'		{ $$ = new ASTNode(Direct_Declarator); $$->pushChild($1); $$->pushChild($3); $$->pushChild($5); $$->m_value = "STATIC"; }
+	| direct_declarator '[' type_qualifier_list assignment_expression ']'				{ $$ = new ASTNode(Direct_Declarator); $$->pushChild($1); $$->pushChild($3); $$->pushChild($4); }	
+	| direct_declarator '[' type_qualifier_list ']'										{ $$ = new ASTNode(Direct_Declarator); $$->pushChild($1); $$->pushChild($3); }
+	| direct_declarator '[' assignment_expression ']'									{ $$ = new ASTNode(Direct_Declarator); $$->pushChild($1); $$->pushChild($3); }	
+	| direct_declarator '(' parameter_type_list ')'										{ $$ = new ASTNode(Direct_Declarator); $$->pushChild($1); $$->pushChild($3); }
+	| direct_declarator '(' ')'															{ $$ = new ASTNode(Direct_Declarator); $$->pushChild($1); }
+	| direct_declarator '(' identifier_list ')'											{ $$ = new ASTNode(Direct_Declarator); $$->pushChild($1); $$->pushChild($3); }
 	;
 
 pointer
@@ -414,12 +417,12 @@ parameter_declaration
 	;
 
 identifier_list
-	: IDENTIFIER
-	| identifier_list ',' IDENTIFIER
+	: IDENTIFIER							{ $$ = new ASTNode(Identifier); $$->m_value = yylval.str; }
+	| identifier_list ',' IDENTIFIER		{ $$ = new ASTNode(Identifier_List); $$->pushChild($1); ASTNode* temp = new ASTNode(Identifier); temp->m_value = yylval.str; $$->pushChild(temp);}
 	;
 
 type_name
-	: specifier_qualifier_list abstract_declarator
+	: specifier_qualifier_list abstract_declarator		
 	| specifier_qualifier_list
 	;
 
@@ -484,13 +487,13 @@ static_assert_declaration
 	: STATIC_ASSERT '(' constant_expression ',' STRING_LITERAL ')' ';'
 	;
 
-statement
-	: labeled_statement					{ $$ = $1; }
-	| compound_statement				{ $$ = $1; }
-	| expression_statement				{ $$ = $1; }
-	| selection_statement				{ $$ = $1; }
-	| iteration_statement				{ $$ = $1; }
-	| jump_statement					{ $$ = $1; }
+statement 
+	: labeled_statement					{ $$ = new ASTNode(Statement); $$->pushChild($1); }
+	| compound_statement				{ $$ = new ASTNode(Statement); $$->pushChild($1); }
+	| expression_statement				{ $$ = new ASTNode(Statement); $$->pushChild($1); }
+	| selection_statement				{ $$ = new ASTNode(Statement); $$->pushChild($1); }
+	| iteration_statement				{ $$ = new ASTNode(Statement); $$->pushChild($1); }
+	| jump_statement					{ $$ = new ASTNode(Statement); $$->pushChild($1); }
 	;
 
 labeled_statement
@@ -535,7 +538,7 @@ iteration_statement
 	;
 
 jump_statement
-	: GOTO IDENTIFIER ';'				{ $$ = new ASTNode(Jump_Statement); $$->m_value = "GOTO"; } // incomplete; how to fetch string correspongind to identifier???
+	: GOTO IDENTIFIER ';'				{ $$ = new ASTNode(Jump_Statement); $$->m_value = "GOTO IDENTIFIER"; } // incomplete; how to fetch string correspongind to identifier???
 	| CONTINUE ';'						{ $$ = new ASTNode(Jump_Statement); $$->m_value = "CONTINUE"; }	
 	| BREAK ';'							{ $$ = new ASTNode(Jump_Statement); $$->m_value = "BREAK"; }
 	| RETURN ';'						{ $$ = new ASTNode(Jump_Statement); $$->m_value = "RETURN"; }
@@ -544,7 +547,7 @@ jump_statement
 
 translation_unit
 	: external_declaration 							{ $$ = new ASTNode(Begin); $$->pushChild($1); root = $$; }
-	| translation_unit external_declaration 		{ $$ = new ASTNode(Begin); $$->pushChild($1); $$->pushChild($2); }
+	| translation_unit external_declaration 		{ $$ = new ASTNode(Begin); $$->pushChild($1); $$->pushChild($2); root = $$; }
 	;
 
 external_declaration

@@ -14,6 +14,82 @@ static void usage()
   printf("Usage: cc <prog.c>\n");
 }
 
+
+std::vector<std::string> nodeTypetoString{
+    "Begin",
+    "External_Declaration",
+    "Function_Definition",
+    "Declaration_Specifiers",
+    "Declaration",
+    "Storage_Class_Specifier",
+    "Type_Specifier", 
+    "Declarator",
+    "Direct_Declarator",
+    "Compound_Statement",
+    "Statement",
+    "Type_Qualifier", 
+    "Function_Specifier", 
+    "Alignment_Specifier",
+    "Block",
+    "Jump_Statement",
+    "Iteration_Statement",
+    "Expression_Statement",
+    "Selection_Statement",
+    "Labeled_Statement",
+    "Expression",
+    "Assignment_Expression",
+    "Conditional_Expression",
+    "Assignment_Operator",
+    "Logical_Or_Expression",
+    "Logical_And_Expression",
+    "Inclusive_Or_Expression",
+    "Exclusive_Or_Expression",
+    "And_Expression",
+    "Equality_Expression",
+    "Relational_Expression",
+    "Shift_Expression",
+    "Additive_Expression",
+    "Multiplicative_Expression",
+    "Cast_Expression",
+    "Unary_Expression", 
+    "Postfix_Expression",
+    "Unary_Operator",
+    "Primary_Expression",
+    "Identifier_List",
+    "Identifier",
+    "Argument_Expression_List",
+    "Constant",
+    "I_Constant",
+    "F_Constant",
+    "String"
+};
+
+
+void printHelper(ASTNode* node, int n){
+    std::string formatter = "";
+    for(int i = 0; i < n; i++){
+        formatter.push_back('|');
+        if (i == n - 1){
+          formatter.push_back('-');
+          continue;
+        }
+        formatter.push_back(' ');
+    }
+    std::cout << formatter;
+    std::cout << nodeTypetoString[node->m_type];
+    if (node->m_value != "") std::cout << "    " << "(" << node->m_value << ")";
+    std::cout << std::endl;
+    for(auto x:(node -> m_children)){
+        printHelper(x, n+1);
+    }
+}
+
+void print(ASTNode* node){
+    printHelper(node, 0);
+}
+
+
+
 int
 main(int argc, char **argv)
 {
@@ -27,7 +103,8 @@ main(int argc, char **argv)
   extern ASTNode* root;
   int ret = yyparse();
 
-  root->print();
+  print(root);
+  // root->print();
 
   printf("retv = %d\n", ret);
   exit(0);

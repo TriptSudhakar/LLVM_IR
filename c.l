@@ -37,6 +37,7 @@ static int check_type(void);
 #define YY_DECL extern "C" int yylex()
 %}
 
+
 %%
 "/*"                                    { comment(); }
 "//".*                                    { /* consume //-comment */ }
@@ -89,10 +90,10 @@ static int check_type(void);
 
 {L}{A}*					{ return check_type(); }
 
-{HP}{H}+{IS}?				{ return I_CONSTANT; }
-{NZ}{D}*{IS}?				{ return I_CONSTANT; }
-"0"{O}*{IS}?				{ return I_CONSTANT; }
-{CP}?"'"([^'\\\n]|{ES})+"'"		{ return I_CONSTANT; }
+{HP}{H}+{IS}?				{ yylval.str = yytext; return I_CONSTANT; }
+{NZ}{D}*{IS}?				{ yylval.str = yytext; return I_CONSTANT; }
+"0"{O}*{IS}?				{ yylval.str = yytext; return I_CONSTANT; }
+{CP}?"'"([^'\\\n]|{ES})+"'"		{ yylval.str = yytext; return I_CONSTANT; }
 
 {D}+{E}{FS}?				{ return F_CONSTANT; }
 {D}*"."{D}+{E}?{FS}?			{ return F_CONSTANT; }
@@ -188,6 +189,7 @@ static int check_type(void)
     case ENUMERATION_CONSTANT:        /* previously defined */
         return ENUMERATION_CONSTANT;
     default:                          /* includes undefined */
+        yylval.str = yytext;
         return IDENTIFIER;
     }
 }
