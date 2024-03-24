@@ -1,115 +1,94 @@
 Begin
 |-Begin
-| |-Begin
-| | |-External_Declaration
-| |   |-Function_Definition
-| |     |-Declaration_Specifiers
-| |     | |-Type_Specifier    (VOID)
-| |     |-Declarator
-| |     | |-Direct_Declarator
-| |     |   |-Identifier    (empty)
-| |     |-Compound_Statement
 | |-External_Declaration
-|   |-Function_Definition
+|   |-Declaration
 |     |-Declaration_Specifiers
-|     | |-Type_Specifier    (VOID)
+|     | |-Type_Specifier    (INT)
 |     |-Declarator
-|     | |-Direct_Declarator
-|     |   |-Identifier    (simple_arith)
-|     |-Compound_Statement
-|       |-Block
-|         |-Statement
+|       |-Direct_Declarator
+|         |-Identifier    (printf)
+|         |-Parameter_Type_List    (...)
+|           |-Parameter_List
+|             |-Parameter_Declaration
+|               |-Declaration_Specifiers
+|               | |-Type_Specifier    (CHAR)
+|               | |-Declaration_Specifiers
+|               |   |-Type_Qualifier    (CONST)
+|               |-Declarator
+|                 |-Pointer    (*)
+|                 |-Identifier    (format)
+|-External_Declaration
+| |-Function_Definition
+|   |-Declaration_Specifiers
+|   | |-Type_Specifier    (INT)
+|   |-Declarator
+|   | |-Direct_Declarator
+|   |   |-Identifier    (main)
+|   |   |-Parameter_Type_List
+|   |     |-Parameter_List
+|   |       |-Parameter_List
+|   |       | |-Parameter_Declaration
+|   |       |   |-Declaration_Specifiers
+|   |       |   | |-Type_Specifier    (INT)
+|   |       |   |-Declarator
+|   |       |     |-Identifier    (argc)
+|   |       |-Parameter_Declaration
+|   |         |-Declaration_Specifiers
+|   |         | |-Type_Specifier    (CHAR)
+|   |         |-Declarator
+|   |           |-Pointer    (*)
+|   |           | |-Pointer    (*)
+|   |           |-Identifier    (argv)
+|   |-Compound_Statement
+|     |-Block
+|       |-Statement
+|       | |-Assignment_Expression
+|       |   |-Conditional_Expression
+|       |     |-Logical_Or_Expression
+|       |       |-Logical_And_Expression
+|       |         |-Inclusive_Or_Expression
+|       |           |-Exclusive_Or_Expression
+|       |             |-And_Expression
+|       |               |-Equality_Expression
+|       |                 |-Relational_Expression
+|       |                   |-Shift_Expression
+|       |                     |-Additive_Expression
+|       |                       |-Multiplicative_Expression
+|       |                         |-Cast_Expression
+|       |                           |-Unary_Expression
+|       |                             |-Unary_Expression
+|       |                               |-Postfix_Expression
+|       |                                 |-Postfix_Expression
+|       |                                 | |-Primary_Expression
+|       |                                 |   |-Identifier    (()
+|       |                                 |-Argument_Expression_List
+|       |                                   |-Conditional_Expression
+|       |                                     |-Logical_Or_Expression
+|       |                                       |-Logical_And_Expression
+|       |                                         |-Inclusive_Or_Expression
+|       |                                           |-Exclusive_Or_Expression
+|       |                                             |-And_Expression
+|       |                                               |-Equality_Expression
+|       |                                                 |-Relational_Expression
+|       |                                                   |-Shift_Expression
+|       |                                                     |-Additive_Expression
+|       |                                                       |-Multiplicative_Expression
+|       |                                                         |-Cast_Expression
+|       |                                                           |-Unary_Expression
+|       |                                                             |-Unary_Expression
+|       |                                                               |-Postfix_Expression
+|       |                                                                 |-Primary_Expression
+|       |                                                                   |-String    ("hello, world\n")
+|       |-Statement
+|         |-Jump_Statement    (RETURN)
 |           |-Assignment_Expression
 |             |-Conditional_Expression
 |               |-Logical_Or_Expression
 |                 |-Logical_And_Expression
 |                   |-Inclusive_Or_Expression
-|                     |-Inclusive_Or_Expression
-|                       |-Exclusive_Or_Expression
-|                       | |-And_Expression
-|                       |   |-Equality_Expression
-|                       |     |-Relational_Expression
-|                       |       |-Shift_Expression
-|                       |         |-Shift_Expression    (<<)
-|                       |           |-Additive_Expression
-|                       |           | |-Multiplicative_Expression
-|                       |           |   |-Cast_Expression
-|                       |           |     |-Unary_Expression
-|                       |           |       |-Unary_Expression
-|                       |           |         |-Primary_Expression
-|                       |           |           |-Assignment_Expression
-|                       |           |             |-Conditional_Expression
-|                       |           |               |-Logical_Or_Expression
-|                       |           |                 |-Logical_And_Expression
-|                       |           |                   |-Inclusive_Or_Expression
-|                       |           |                     |-Exclusive_Or_Expression
-|                       |           |                       |-And_Expression
-|                       |           |                         |-Equality_Expression
-|                       |           |                           |-Relational_Expression
-|                       |           |                             |-Shift_Expression
-|                       |           |                               |-Additive_Expression
-|                       |           |                                 |-Additive_Expression    (-)
-|                       |           |                                   |-Multiplicative_Expression
-|                       |           |                                   | |-Cast_Expression
-|                       |           |                                   |   |-Unary_Expression
-|                       |           |                                   |     |-Unary_Expression
-|                       |           |                                   |       |-Primary_Expression
-|                       |           |                                   |         |-I_Constant    (10)
-|                       |           |                                   |-Multiplicative_Expression    (/)
-|                       |           |                                     |-Cast_Expression
-|                       |           |                                     | |-Unary_Expression
-|                       |           |                                     |   |-Unary_Expression
-|                       |           |                                     |     |-Primary_Expression
-|                       |           |                                     |       |-I_Constant    (10)
-|                       |           |                                     |-Unary_Expression
-|                       |           |                                       |-Unary_Expression
-|                       |           |                                         |-Primary_Expression
-|                       |           |                                           |-I_Constant    (3)
-|                       |           |-Multiplicative_Expression
-|                       |             |-Cast_Expression
-|                       |               |-Unary_Expression
-|                       |                 |-Unary_Expression
-|                       |                   |-Primary_Expression
-|                       |                     |-I_Constant    (3)
+|                     |-Exclusive_Or_Expression
 |                       |-And_Expression
-|                         |-And_Expression
-|                           |-Equality_Expression
-|                           | |-Relational_Expression
-|                           |   |-Shift_Expression
-|                           |     |-Additive_Expression
-|                           |       |-Multiplicative_Expression
-|                           |         |-Cast_Expression
-|                           |           |-Unary_Expression
-|                           |             |-Unary_Expression
-|                           |               |-Primary_Expression
-|                           |                 |-Assignment_Expression
-|                           |                   |-Conditional_Expression
-|                           |                     |-Logical_Or_Expression
-|                           |                       |-Logical_And_Expression
-|                           |                         |-Inclusive_Or_Expression
-|                           |                           |-Exclusive_Or_Expression
-|                           |                             |-And_Expression
-|                           |                               |-Equality_Expression
-|                           |                                 |-Relational_Expression
-|                           |                                   |-Shift_Expression
-|                           |                                     |-Additive_Expression
-|                           |                                       |-Additive_Expression    (+)
-|                           |                                         |-Multiplicative_Expression
-|                           |                                         | |-Cast_Expression
-|                           |                                         |   |-Unary_Expression
-|                           |                                         |     |-Unary_Expression
-|                           |                                         |       |-Primary_Expression
-|                           |                                         |         |-I_Constant    (23)
-|                           |                                         |-Multiplicative_Expression    (*)
-|                           |                                           |-Cast_Expression
-|                           |                                           | |-Unary_Expression
-|                           |                                           |   |-Unary_Expression
-|                           |                                           |     |-Primary_Expression
-|                           |                                           |       |-I_Constant    (8)
-|                           |                                           |-Unary_Expression
-|                           |                                             |-Unary_Expression
-|                           |                                               |-Primary_Expression
-|                           |                                                 |-I_Constant    (12)
+|                         |-Equality_Expression
 |                           |-Relational_Expression
 |                             |-Shift_Expression
 |                               |-Additive_Expression
@@ -117,139 +96,7 @@ Begin
 |                                   |-Cast_Expression
 |                                     |-Unary_Expression
 |                                       |-Unary_Expression
-|                                         |-Primary_Expression
-|                                           |-I_Constant    (1024)
-|-External_Declaration
-| |-Function_Definition
-|   |-Declaration_Specifiers
-|   | |-Type_Specifier    (VOID)
-|   |-Declarator
-|   | |-Direct_Declarator
-|   |   |-Identifier    (simple_arith_with_arg)
-|   |   |-Declaration_Specifiers
-|   |     |-Type_Specifier    (INT)
-|   |-Compound_Statement
-|     |-Block
-|       |-Statement
-|         |-Assignment_Expression
-|           |-Conditional_Expression
-|             |-Logical_Or_Expression
-|               |-Logical_Or_Expression
-|                 |-Logical_And_Expression
-|                 | |-Inclusive_Or_Expression
-|                 |   |-Exclusive_Or_Expression
-|                 |     |-And_Expression
-|                 |       |-Equality_Expression
-|                 |         |-Relational_Expression
-|                 |           |-Shift_Expression
-|                 |             |-Additive_Expression
-|                 |               |-Multiplicative_Expression
-|                 |                 |-Cast_Expression
-|                 |                   |-Unary_Expression
-|                 |                     |-Unary_Expression
-|                 |                       |-Primary_Expression
-|                 |                         |-Assignment_Expression
-|                 |                           |-Conditional_Expression
-|                 |                             |-Logical_Or_Expression
-|                 |                               |-Logical_And_Expression
-|                 |                                 |-Inclusive_Or_Expression
-|                 |                                   |-Exclusive_Or_Expression
-|                 |                                     |-And_Expression
-|                 |                                       |-Equality_Expression
-|                 |                                         |-Relational_Expression
-|                 |                                           |-Relational_Expression    (>)
-|                 |                                             |-Shift_Expression
-|                 |                                             | |-Additive_Expression
-|                 |                                             |   |-Multiplicative_Expression
-|                 |                                             |     |-Cast_Expression
-|                 |                                             |       |-Unary_Expression
-|                 |                                             |         |-Unary_Expression
-|                 |                                             |           |-Primary_Expression
-|                 |                                             |             |-Identifier    (d)
-|                 |                                             |-Additive_Expression
-|                 |                                               |-Multiplicative_Expression
-|                 |                                                 |-Multiplicative_Expression    (/)
-|                 |                                                   |-Cast_Expression
-|                 |                                                   | |-Unary_Expression
-|                 |                                                   |   |-Unary_Expression
-|                 |                                                   |     |-Primary_Expression
-|                 |                                                   |       |-Identifier    (d)
-|                 |                                                   |-Unary_Expression
-|                 |                                                     |-Unary_Expression
-|                 |                                                       |-Primary_Expression
-|                 |                                                         |-I_Constant    (2)
-|                 |-Logical_And_Expression
-|                   |-Inclusive_Or_Expression
-|                   | |-Exclusive_Or_Expression
-|                   |   |-And_Expression
-|                   |     |-Equality_Expression
-|                   |       |-Relational_Expression
-|                   |         |-Shift_Expression
-|                   |           |-Additive_Expression
-|                   |             |-Multiplicative_Expression
-|                   |               |-Cast_Expression
-|                   |                 |-Unary_Expression
-|                   |                   |-Unary_Expression
-|                   |                     |-Primary_Expression
-|                   |                       |-Assignment_Expression
-|                   |                         |-Conditional_Expression
-|                   |                           |-Logical_Or_Expression
-|                   |                             |-Logical_And_Expression
-|                   |                               |-Inclusive_Or_Expression
-|                   |                                 |-Exclusive_Or_Expression
-|                   |                                   |-And_Expression
-|                   |                                     |-Equality_Expression
-|                   |                                       |-Relational_Expression
-|                   |                                         |-Relational_Expression    (>=)
-|                   |                                           |-Shift_Expression
-|                   |                                           | |-Additive_Expression
-|                   |                                           |   |-Multiplicative_Expression
-|                   |                                           |     |-Cast_Expression
-|                   |                                           |       |-Unary_Expression
-|                   |                                           |         |-Unary_Expression
-|                   |                                           |           |-Primary_Expression
-|                   |                                           |             |-Identifier    (d)
-|                   |                                           |-Additive_Expression
-|                   |                                             |-Multiplicative_Expression
-|                   |                                               |-Cast_Expression
-|                   |                                                 |-Unary_Expression
-|                   |                                                   |-Unary_Expression
-|                   |                                                     |-Primary_Expression
-|                   |                                                       |-I_Constant    (100)
-|                   |-Exclusive_Or_Expression
-|                     |-And_Expression
-|                       |-Equality_Expression
-|                         |-Relational_Expression
-|                           |-Shift_Expression
-|                             |-Additive_Expression
-|                               |-Multiplicative_Expression
-|                                 |-Cast_Expression
-|                                   |-Unary_Expression
-|                                     |-Unary_Expression
-|                                       |-Primary_Expression
-|                                         |-Assignment_Expression
-|                                           |-Conditional_Expression
-|                                             |-Logical_Or_Expression
-|                                               |-Logical_And_Expression
-|                                                 |-Inclusive_Or_Expression
-|                                                   |-Exclusive_Or_Expression
-|                                                     |-And_Expression
-|                                                       |-Equality_Expression
-|                                                         |-Relational_Expression
-|                                                           |-Relational_Expression    (<)
-|                                                             |-Shift_Expression
-|                                                             | |-Additive_Expression
-|                                                             |   |-Multiplicative_Expression
-|                                                             |     |-Cast_Expression
-|                                                             |       |-Unary_Expression
-|                                                             |         |-Unary_Expression
-|                                                             |           |-Primary_Expression
-|                                                             |             |-Identifier    (d)
-|                                                             |-Additive_Expression
-|                                                               |-Multiplicative_Expression
-|                                                                 |-Cast_Expression
-|                                                                   |-Unary_Expression
-|                                                                     |-Unary_Expression
-|                                                                       |-Primary_Expression
-|                                                                         |-I_Constant    (99)
+|                                         |-Postfix_Expression
+|                                           |-Primary_Expression
+|                                             |-I_Constant    (0)
 retv = 0

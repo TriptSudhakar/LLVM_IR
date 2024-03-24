@@ -52,7 +52,7 @@ ASTNode* root = NULL;
 %type <ast_node> conditional_expression logical_or_expression logical_and_expression 
 %type <ast_node> inclusive_or_expression exclusive_or_expression and_expression equality_expression relational_expression shift_expression additive_expression multiplicative_expression
 %type <ast_node> unary_expression cast_expression type_name postfix_expression primary_expression initializer_list unary_operator argument_expression_list
-%type <ast_node> generic_selection constant string
+%type <ast_node> generic_selection constant string parameter_declaration parameter_list abstract_declarator direct_abstract_declarator
 
 %start translation_unit
 
@@ -60,9 +60,9 @@ ASTNode* root = NULL;
 
 
 primary_expression
-	: IDENTIFIER					{ $$ = new ASTNode(Identifier); $$->m_value = yylval.str; }
-	| constant						{ $$ = $1; }
-	| string						{ $$ = new ASTNode(String); $$->pushChild($1); }
+	: IDENTIFIER					{ $$ = new ASTNode(Primary_Expression); ASTNode* temp = new ASTNode(Identifier); temp->m_value = yylval.str; $$->pushChild(temp); }
+	| constant						{ $$ = new ASTNode(Primary_Expression); $$->pushChild($1); }
+	| string						{ $$ = new ASTNode(Primary_Expression); $$->pushChild($1); }
 	| '(' expression ')'			{ $$ = $2; }
 	| generic_selection				{ $$ = $1; }
 	;
@@ -78,8 +78,8 @@ enumeration_constant		/* before it has been defined as such */
 	;
 
 string
-	: STRING_LITERAL
-	| FUNC_NAME
+	: STRING_LITERAL				{ $$ = new ASTNode(String); $$->m_value = yylval.str; }
+	| FUNC_NAME						{ $$ = new ASTNode(String); $$->m_value = "FUNC_NAME"; }
 	;
 
 generic_selection
@@ -97,7 +97,7 @@ generic_association
 	;
 
 postfix_expression
-	: primary_expression												{ $$ = new ASTNode(Primary_Expression); $$->pushChild($1); }
+	: primary_expression												{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); }
 	| postfix_expression '[' expression ']'								{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->pushChild($3); }							
 	| postfix_expression '(' ')'										{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->m_value = "()"; }
 	| postfix_expression '(' argument_expression_list ')'				{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->pushChild($3); }
@@ -259,7 +259,7 @@ init_declarator
 	;
 
 storage_class_specifier
-	: TYPEDEF	/* identifiers must be flagged as TYPEDEF_NAME */
+	: TYPEDEF			 /* identifiers must be flagged as TYPEDEF_NAME */
 	| EXTERN
 	| STATIC
 	| THREAD_LOCAL
@@ -349,10 +349,10 @@ atomic_type_specifier
 	;
 
 type_qualifier
-	: CONST
-	| RESTRICT
-	| VOLATILE
-	| ATOMIC
+	: CONST							{ $$ = new ASTNode(Type_Qualifier); $$->m_value = "CONST"; }
+	| RESTRICT						{ $$ = new ASTNode(Type_Qualifier); $$->m_value = "RESTRICT"; }
+	| VOLATILE						{ $$ = new ASTNode(Type_Qualifier); $$->m_value = "VOLATILE"; }
+	| ATOMIC						{ $$ = new ASTNode(Type_Qualifier); $$->m_value = "ATOMIC"; }
 	;
 
 function_specifier
@@ -388,32 +388,32 @@ direct_declarator
 	;
 
 pointer
-	: '*' type_qualifier_list pointer
-	| '*' type_qualifier_list
-	| '*' pointer
-	| '*'
+	: '*' type_qualifier_list pointer				{ $$ = new ASTNode(Pointer); $$->m_value = "*"; $$->pushChild($2); $$->pushChild($3); }
+	| '*' type_qualifier_list						{ $$ = new ASTNode(Pointer); $$->m_value = "*"; $$->pushChild($2); }
+	| '*' pointer									{ $$ = new ASTNode(Pointer); $$->m_value = "*"; $$->pushChild($2); }
+	| '*'											{ $$ = new ASTNode(Pointer); $$->m_value = "*"; }
 	;
 
 type_qualifier_list
-	: type_qualifier
-	| type_qualifier_list type_qualifier
+	: type_qualifier								{ $$ = new ASTNode(Type_Qualifier_List); $$->pushChild($1); }
+	| type_qualifier_list type_qualifier			{ $$ = new ASTNode(Type_Qualifier_List); $$->pushChild($1); $$->pushChild($2); }
 	;
 
 
 parameter_type_list
-	: parameter_list ',' ELLIPSIS
-	| parameter_list
+	: parameter_list ',' ELLIPSIS					{ $$ = new ASTNode(Parameter_Type_List); $$->pushChild($1); $$->m_value = "..."; }
+	| parameter_list								{ $$ = new ASTNode(Parameter_Type_List); $$->pushChild($1); }
 	;
 
 parameter_list
-	: parameter_declaration
-	| parameter_list ',' parameter_declaration
+	: parameter_declaration								{ $$ = new ASTNode(Parameter_List); $$->pushChild($1); }
+	| parameter_list ',' parameter_declaration			{ $$ = new ASTNode(Parameter_List); $$->pushChild($1); $$->pushChild($3); }
 	;
 
 parameter_declaration
-	: declaration_specifiers declarator
-	| declaration_specifiers abstract_declarator
-	| declaration_specifiers
+	: declaration_specifiers declarator					{ $$ = new ASTNode(Parameter_Declaration); $$->pushChild($1); $$->pushChild($2); }
+	| declaration_specifiers abstract_declarator		{ $$ = new ASTNode(Parameter_Declaration); $$->pushChild($1); $$->pushChild($2); }
+	| declaration_specifiers							{ $$ = new ASTNode(Parameter_Declaration); $$->pushChild($1); }
 	;
 
 identifier_list
@@ -427,9 +427,9 @@ type_name
 	;
 
 abstract_declarator
-	: pointer direct_abstract_declarator
-	| pointer
-	| direct_abstract_declarator
+	: pointer direct_abstract_declarator	{ $$ = new ASTNode(Abstract_Declarator); $$->pushChild($1); $$->pushChild($2); }
+	| pointer								{ $$ = new ASTNode(Abstract_Declarator); $$->pushChild($1); }
+	| direct_abstract_declarator			{ $$ = new ASTNode(Abstract_Declarator); $$->pushChild($1); }
 	;
 
 direct_abstract_declarator
@@ -523,18 +523,18 @@ expression_statement
 	;
 
 selection_statement
-	: IF '(' expression ')' statement ELSE statement
-	| IF '(' expression ')' statement
-	| SWITCH '(' expression ')' statement
+	: IF '(' expression ')' statement ELSE statement		{ $$ = new ASTNode(Selection_Statement); $$->m_value = "IF ELSe"; $$->pushChild($3); $$->pushChild($5); $$->pushChild($7); }
+	| IF '(' expression ')' statement						{ $$ = new ASTNode(Selection_Statement); $$->m_value = "IF"; $$->pushChild($3); $$->pushChild($5); }
+	| SWITCH '(' expression ')' statement					{ $$ = new ASTNode(Selection_Statement); $$->m_value = "SWITCH"; $$->pushChild($3); $$->pushChild($5); }	
 	;
 
 iteration_statement
-	: WHILE '(' expression ')' statement
-	| DO statement WHILE '(' expression ')' ';'
-	| FOR '(' expression_statement expression_statement ')' statement
-	| FOR '(' expression_statement expression_statement expression ')' statement
-	| FOR '(' declaration expression_statement ')' statement
-	| FOR '(' declaration expression_statement expression ')' statement
+	: WHILE '(' expression ')' statement											{ $$ = new ASTNode(Iteration_Statement); $$->m_value = "WHILE"; $$->pushChild($3); $$->pushChild($5); }
+	| DO statement WHILE '(' expression ')' ';'										{ $$ = new ASTNode(Iteration_Statement); $$->m_value = "DO WHILE"; $$->pushChild($2); $$->pushChild($5); }
+	| FOR '(' expression_statement expression_statement ')' statement				{ $$ = new ASTNode(Iteration_Statement); $$->m_value = "FOR"; $$->pushChild($3); $$->pushChild($4); $$->pushChild($6); }
+	| FOR '(' expression_statement expression_statement expression ')' statement	{ $$ = new ASTNode(Iteration_Statement); $$->m_value = "FOR"; $$->pushChild($3); $$->pushChild($4); $$->pushChild($5); $$->pushChild($7); }
+	| FOR '(' declaration expression_statement ')' statement						{ $$ = new ASTNode(Iteration_Statement); $$->m_value = "FOR"; $$->pushChild($3); $$->pushChild($4); $$->pushChild($6); }
+	| FOR '(' declaration expression_statement expression ')' statement				{ $$ = new ASTNode(Iteration_Statement); $$->m_value = "FOR"; $$->pushChild($3); $$->pushChild($4); $$->pushChild($5); $$->pushChild($7); }
 	;
 
 jump_statement

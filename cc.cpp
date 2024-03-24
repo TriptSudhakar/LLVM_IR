@@ -63,7 +63,13 @@ std::vector<std::string> nodeTypetoString{
     "Constant",
     "I_Constant",
     "F_Constant",
-    "String"
+    "String",
+    "Parameter_Type_List",
+    "Parameter_List",
+    "Parameter_Declaration",
+    "Abstract_Declarator",
+    "Type_Qualifier_List",
+    "Pointer",
 };
 
 
