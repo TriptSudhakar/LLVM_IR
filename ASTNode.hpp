@@ -59,6 +59,8 @@ enum NodeType {
     Abstract_Declarator,
     Type_Qualifier_List,
     Pointer,
+    Init_Declarator_List, 
+    Init_Declarator
 };
 
 

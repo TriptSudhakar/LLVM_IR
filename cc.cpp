@@ -72,6 +72,8 @@ std::vector<std::string> nodeTypetoString{
     "Abstract_Declarator",
     "Type_Qualifier_List",
     "Pointer",
+    "Init_Declarator_List", 
+    "Init_Declarator"
 };
 
 

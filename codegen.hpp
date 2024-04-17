@@ -31,7 +31,10 @@ public:
         LLVMValueRef var_to_val(std::string var_name);
         LLVMValueRef get_func(std::string func_name);
 
-        LLVMValueRef generate_code(ASTNode* node);
+        LLVMValueRef generate_code(ASTNode* node, bool local, LLVMTypeRef return_type);
+        LLVMValueRef declare_variable(std::string name, LLVMTypeRef type, bool local);
+
+        LLVMValueRef get_node_value(ASTNode* node, LLVMTypeRef type, LLVMValueRef mem);
 
         void convert_to_ir(ASTNode* node, std::string file);
 };

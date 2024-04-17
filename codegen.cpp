@@ -18,6 +18,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
+#include <llvm-c/Core.h>
 
 using namespace std;
 using namespace llvm;
@@ -49,6 +50,33 @@ void Codegen::push_scope(){
 
 void Codegen::pop_scope(){
     vars.pop();
+}
+
+LLVMValueRef Codegen::declare_variable (std::string name, LLVMTypeRef type, bool local = true){
+    std::cout << "declaring variable " << name << std::endl;
+    LLVMValueRef mem;
+    LLVMBuilderRef builder = builderStack.top();
+
+    if (local) {
+        mem = LLVMBuildAlloca(builder, type, name.c_str());
+    } 
+    else {
+        mem = LLVMAddGlobal(cmodule, type, name.c_str());
+        LLVMSetLinkage(mem, LLVMCommonLinkage);
+        // The symbol is not a global constant
+        LLVMSetGlobalConstant(mem,0);
+        // Initialize globals to 0 
+        LLVMTypeKind tkind = LLVMGetTypeKind(type);
+        LLVMValueRef z;
+        if (tkind == LLVMIntegerTypeKind) {
+            z = LLVMConstInt(LLVMInt32TypeInContext(contextStack.top()), 0, false);
+        } else {
+            z = LLVMConstReal(LLVMFloatTypeInContext(contextStack.top()), 0.0);
+        }
+        LLVMSetInitializer(mem, z);
+    }
+    vars.top()[name] = mem;
+    return mem;
 }
 
 LLVMValueRef Codegen::var_to_val(std::string var_name) {
@@ -120,14 +148,35 @@ LLVMTypeRef getLLVMType(std::string type, LLVMContextRef context) {
 
 
 
-LLVMValueRef Codegen::generate_code(ASTNode* node){
+LLVMValueRef Codegen::get_node_value(ASTNode* node, LLVMTypeRef type, LLVMValueRef mem) {
+    // std::cout << type << std::endl;
+
+    if (node->m_type != Identifier) {
+        return mem;
+    } 
+
+    std::string id = node->m_value;
+    std::string load = "ld_" + id;
+    // if (type == nullptr) std::cout << "nulltype" << std::endl;
+    LLVMValueRef ld = LLVMBuildLoad2(builderStack.top(), type, mem, load.c_str());
+    // LLVMValueRef ld = LLVMBuildLoad(builderStack.top(), mem, load.c_str());
+    std::cout << "getting node value" << std::endl;
+    return ld;
+}
+
+
+
+
+
+
+LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRef return_type = nullptr){
     LLVMContextRef context = contextStack.top();
     LLVMBuilderRef builder = builderStack.top();
 
     if (node->m_type == Begin){
         std::cout << "Generating code for Begin" << std::endl;
         for(auto x : node->m_children){
-            generate_code(x);
+            generate_code(x, local, return_type);
         }
         return nullptr;
     }
@@ -177,7 +226,8 @@ LLVMValueRef Codegen::generate_code(ASTNode* node){
         func_args.push(std::map<std::string, LLVMValueRef>());
 
         // generate code for code block
-        generate_code(node->m_children[2]);
+        // generate_code(node->m_children[2]);
+        generate_code(node->m_children[2], local, func_return_type);
 
         pop_scope();
         func_args.pop();
@@ -191,12 +241,50 @@ LLVMValueRef Codegen::generate_code(ASTNode* node){
 
     }
 
+    else if (node->m_type == Block){
+        for(int i = 0; i < node->m_children.size(); i++){
+            generate_code(node->m_children[i], local, return_type);
+        }
+    }
+
+    else if (node->m_type == Identifier){
+        std::string name = node->m_value;
+        
+        LLVMValueRef id = var_to_val(name);
+        if (id) {
+            return id;
+        }
+
+        // else check if function argument
+    }
+
+    else if (node->m_type == Jump_Statement && node->m_value == "RETURN"){
+        if(return_type == LLVMVoidType()) {
+            return LLVMBuildRetVoid(builder);
+        } 
+        else {
+            LLVMValueRef return_val = generate_code(node->m_children[0], true, return_type);\
+            if (return_val == nullptr) std::cout << "nullpointer returned" << std::endl;
+            return_val = get_node_value(node->m_children[0], return_type, return_val);
+            return LLVMBuildRet(builder, return_val);
+        }
+    }
+
+
+
+
+
 
     else if (node->m_type == Declaration){
         LLVMTypeRef var_type = getLLVMType(node->m_children[0]->m_value, context);
-        
-    }
 
+        int ndecl = (node->m_children[1]->m_children).size();
+        std::cout << "declared " << ndecl << " variables of type " << node->m_children[0]->m_value << std::endl;
+        
+        for(int i = 0; i < ndecl; i++){
+            declare_variable(node->m_children[1]->m_children[i]->m_children[0]->m_value, var_type);
+        }
+    }
 
 
     else if (node->m_type == I_Constant){
@@ -207,7 +295,7 @@ LLVMValueRef Codegen::generate_code(ASTNode* node){
 
     else{
         for(auto x : node->m_children){
-            generate_code(x);
+            generate_code(x, local, return_type);
         }
         return nullptr; 
     }

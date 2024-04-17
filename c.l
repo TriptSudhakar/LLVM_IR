@@ -90,10 +90,10 @@ static int check_type(void);
 
 {L}{A}*					{ return check_type(); }
 
-{HP}{H}+{IS}?				{ yylval.str = yytext; return I_CONSTANT; }
-{NZ}{D}*{IS}?				{ yylval.str = yytext; return I_CONSTANT; }
-"0"{O}*{IS}?				{ yylval.str = yytext; return I_CONSTANT; }
-{CP}?"'"([^'\\\n]|{ES})+"'"		{ yylval.str = yytext; return I_CONSTANT; }
+{HP}{H}+{IS}?				{ yylval.str = strdup(yytext); return I_CONSTANT; }
+{NZ}{D}*{IS}?				{ yylval.str = strdup(yytext); return I_CONSTANT; }
+"0"{O}*{IS}?				{ yylval.str = strdup(yytext); return I_CONSTANT; }
+{CP}?"'"([^'\\\n]|{ES})+"'"		{ yylval.str = strdup(yytext); return I_CONSTANT; }
 
 {D}+{E}{FS}?				{ return F_CONSTANT; }
 {D}*"."{D}+{E}?{FS}?			{ return F_CONSTANT; }
@@ -102,7 +102,7 @@ static int check_type(void);
 {HP}{H}*"."{H}+{P}{FS}?			{ return F_CONSTANT; }
 {HP}{H}+"."{P}{FS}?			{ return F_CONSTANT; }
 
-({SP}?\"([^"\\\n]|{ES})*\"{WS}*)+	{ return STRING_LITERAL; }
+({SP}?\"([^"\\\n]|{ES})*\"{WS}*)+	{ yylval.str = strdup(yytext); return STRING_LITERAL; }
 
 "..."					{ return ELLIPSIS; }
 ">>="					{ return RIGHT_ASSIGN; }
@@ -189,7 +189,7 @@ static int check_type(void)
     case ENUMERATION_CONSTANT:        /* previously defined */
         return ENUMERATION_CONSTANT;
     default:                          /* includes undefined */
-        yylval.str = yytext;
+        yylval.str = strdup(yytext);
         return IDENTIFIER;
     }
 }
