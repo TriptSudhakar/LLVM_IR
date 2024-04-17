@@ -3,6 +3,8 @@
 #include <assert.h>
 #include "ASTNode.hpp"
 #include "c.tab.hpp"
+#include "codegen.cpp"
+
 
 #include <vector> 
 
@@ -138,7 +140,10 @@ main(int argc, char **argv)
 
   print(root);
   // root->print();
-
   printf("retv = %d\n", ret);
+
+  // codegen();
+  Codegen cgen = Codegen();
+  cgen.convert_to_ir(root, "ir_dump.txt");
   exit(0);
 }

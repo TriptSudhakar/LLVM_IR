@@ -1,3 +1,6 @@
+#ifndef _AST_NODE_HH_
+#define _AST_NODE_HH_
+
 #include <string> 
 #include <vector> 
 #include <iostream> 
@@ -67,6 +70,7 @@ class ASTNode {
     NodeType m_type;
     std::string m_value;
     std::vector<ASTNode*> m_children;
+    int m_rule;
 
 
     ASTNode() {};
@@ -89,8 +93,6 @@ class ASTNode {
         }
     }
 
-    
-
     void printHelper(int n){
         std::string formatter = "";
         for(int i = 0; i < n; i++){
@@ -108,9 +110,23 @@ class ASTNode {
     void print(){
         printHelper(0);
     }
-
-
-    
 };
 
+// class ASTNodeVector{
+// public:
+//     std::vector<ASTNode*> node_vector;
 
+//     void add_node(ASTNode* node){
+//         node_vector.push_back(node);
+//     }
+
+//     ASTNode* get_node(int n){
+//         return node_vector[n];
+//     }
+
+//     int get_length(){
+//         return node_vector.size();
+//     }
+// };
+
+#endif
