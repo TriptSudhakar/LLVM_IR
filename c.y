@@ -71,7 +71,7 @@ primary_expression
 
 constant
 	: I_CONSTANT					{ $$ = new ASTNode(I_Constant); $$->m_value = yylval.str; } /* includes character_constant */
-	| F_CONSTANT					{ $$ = new ASTNode(Constant); $$->m_value = "F_CONSTANT"; }     // s. do this later
+	| F_CONSTANT					{ $$ = new ASTNode(F_Constant); $$->m_value = yylval.str; }     // s. do this later
 	| ENUMERATION_CONSTANT			{ $$ = new ASTNode(Constant); $$->m_value = "ENUMERATION_CONSTANT";  } /* after it has been defined as such */
 	;
 
@@ -101,10 +101,10 @@ generic_association
 postfix_expression
 	: primary_expression												{ $$ = $1; }
 	| postfix_expression '[' expression ']'								{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->pushChild($3); }							
-	| postfix_expression '(' ')'										{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->m_value = "()"; }
-	| postfix_expression '(' argument_expression_list ')'				{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->pushChild($3); }
-	| postfix_expression '.' IDENTIFIER									{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->m_value = ". IDENTIFIER"; }
-	| postfix_expression PTR_OP IDENTIFIER								{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->m_value = "PTR_OP IDENTIFIER"; }
+	| postfix_expression '(' ')'										{ $$ = new ASTNode(Function_Call); $$->pushChild($1); $$->m_value = "()"; }
+	| postfix_expression '(' argument_expression_list ')'				{ $$ = new ASTNode(Function_Call); $$->pushChild($1); $$->pushChild($3); }
+	| postfix_expression '.' IDENTIFIER									{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->m_value = yylval.str; } // ts. fix these
+	| postfix_expression PTR_OP IDENTIFIER								{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->m_value = yylval.str; } // ts. fix these
 	| postfix_expression INC_OP											{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->m_value = "INC_OP"; }
 	| postfix_expression DEC_OP											{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($1); $$->m_value = "DEC_OP"; }
 	| '(' type_name ')' '{' initializer_list '}'						{ $$ = new ASTNode(Postfix_Expression); $$->pushChild($2); $$->pushChild($5); }
@@ -112,8 +112,8 @@ postfix_expression
 	;
 
 argument_expression_list
-	: assignment_expression												{ $$ = new ASTNode(Argument_Expression_List); $$->pushChild($1); }
-	| argument_expression_list ',' assignment_expression				{ $$ = new ASTNode(Argument_Expression_List); $$->pushChild($1); $$->pushChild($3); }
+	: assignment_expression												{ $$ = new ASTNode(Argument_Expression_List), $$->pushChild($1); }
+	| argument_expression_list ',' assignment_expression				{ $$ = $1; $$->pushChild($3); }
 	;
 
 unary_expression
@@ -524,7 +524,7 @@ block_item
 	;
 
 expression_statement
-	: ';'								{ $$ = NULL; }
+	: ';'								{ $$ = nullptr; }
 	| expression ';'					{ $$ = $1; }
 	;
 
@@ -544,7 +544,7 @@ iteration_statement
 	;
 
 jump_statement
-	: GOTO IDENTIFIER ';'				{ $$ = new ASTNode(Jump_Statement); $$->m_value = "GOTO IDENTIFIER"; } // incomplete; how to fetch string correspongind to identifier???
+	: GOTO IDENTIFIER ';'				{ $$ = new ASTNode(Jump_Statement); $$->m_value = "GOTO"; ASTNode* temp = new ASTNode(Identifier); temp->m_value = yylval.str; $$->pushChild(temp); } 
 	| CONTINUE ';'						{ $$ = new ASTNode(Jump_Statement); $$->m_value = "CONTINUE"; }	
 	| BREAK ';'							{ $$ = new ASTNode(Jump_Statement); $$->m_value = "BREAK"; }
 	| RETURN ';'						{ $$ = new ASTNode(Jump_Statement); $$->m_value = "RETURN"; }
@@ -567,8 +567,8 @@ function_definition
 	;
 
 declaration_list
-	: declaration
-	| declaration_list declaration
+	: declaration								{ $$ = new ASTNode(Declaration_List); $$->pushChild($1); }
+	| declaration_list declaration				{ $$ = $1; $$->pushChild($2); }
 	;
 
 %%

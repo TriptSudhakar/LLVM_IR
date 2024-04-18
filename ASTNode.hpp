@@ -11,6 +11,7 @@ enum NodeType {
     External_Declaration,
     Function_Definition,
     Declaration_Specifiers,
+    Declaration_List,
     Declaration,
     Storage_Class_Specifier,
     Type_Specifier, 
@@ -60,7 +61,8 @@ enum NodeType {
     Type_Qualifier_List,
     Pointer,
     Init_Declarator_List, 
-    Init_Declarator
+    Init_Declarator, 
+    Function_Call
 };
 
 

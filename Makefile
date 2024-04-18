@@ -1,4 +1,4 @@
-cc: cc.cpp c.tab.cpp c.lex.cpp codegen.cpp codegen.hpp
+cc: cc.cpp c.tab.cpp c.lex.cpp codegen.cpp codegen.hpp scope.cpp scope.hpp
 	g++ c.tab.cpp c.lex.cpp cc.cpp -lm -ll `llvm-config --cxxflags --libs --ldflags --system-libs` -o $@
 
 c.tab.cpp c.tab.hpp: c.y

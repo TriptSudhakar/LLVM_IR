@@ -29,6 +29,9 @@ std::unique_ptr<IRBuilder<>> Builder;
 std::map<std::string, Value *> NamedValues;
 
 
+
+
+
 Codegen::Codegen() {
     LLVMContextRef globalContext = LLVMGetGlobalContext();
     LLVMBuilderRef globalBuilder = LLVMCreateBuilderInContext(globalContext);
@@ -54,6 +57,12 @@ void Codegen::pop_scope(){
 
 LLVMValueRef Codegen::declare_variable (std::string name, LLVMTypeRef type, bool local = true){
     std::cout << "declaring variable " << name << std::endl;
+
+    if (!func_args.empty() && get_func_arg(name)){
+        std::cout << "DOUBLE DECLARATION" << std::endl;
+    } 
+
+
     LLVMValueRef mem;
     LLVMBuilderRef builder = builderStack.top();
 
@@ -95,6 +104,16 @@ LLVMValueRef Codegen::var_to_val(std::string var_name) {
         vars.push(scope);
         return var;
     }
+}
+
+LLVMValueRef Codegen::get_func_arg(const std::string var_name) {
+    std::map<std::string, LLVMValueRef> args = func_args.top();
+
+    if (args.find(var_name) != args.end()){
+        return args[var_name];
+    }
+
+    return nullptr;
 }
 
 LLVMValueRef Codegen::get_func(std::string func_name) {
@@ -151,6 +170,8 @@ LLVMTypeRef getLLVMType(std::string type, LLVMContextRef context) {
 LLVMValueRef Codegen::get_node_value(ASTNode* node, LLVMTypeRef type, LLVMValueRef mem) {
     // std::cout << type << std::endl;
 
+    std::cout << "called get_node_value with type argument " << LLVMPrintTypeToString(type) << std::endl;
+
     if (node->m_type != Identifier) {
         return mem;
     } 
@@ -192,6 +213,8 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
         LLVMValueRef func_decl;
         std::map<std::string, LLVMValueRef> ftable = funcs.top();
 
+        std::map<std::string, LLVMValueRef> syms;
+
         // if function is already declared
         if (ftable.find(func_name) != ftable.end()) {
             return ftable[func_name];
@@ -210,20 +233,40 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
             func_decl = LLVMAddFunction(cmodule, func_name, func_type);
             unsigned int ct = LLVMCountParams(func_decl);
             funcs.top()[func_name] = func_decl;
+            function_types[node->m_children[1]->m_children[0]->m_value] = func_type;
         }
 
         else {
             // there are arguments, to be filled later
+            std::vector<LLVMTypeRef> func_params;
+            for(int i = 0; i < nargs; i++){
+                ASTNode* arg = node->m_children[1]->m_children[1]->m_children[i];
+                func_params.push_back(getLLVMType(arg->m_children[0]->m_value, context));
+            }
+
+            LLVMTypeRef* param_types = func_params.data();
+            LLVMTypeRef func_type = LLVMFunctionType(func_return_type, param_types, nargs, 0);
+            func_decl = LLVMAddFunction(cmodule, func_name, func_type);
+            funcs.top()[func_name] = func_decl;   
+            function_types[node->m_children[1]->m_children[0]->m_value] = func_type;
         }
 
         LLVMBasicBlockRef func_entry = LLVMAppendBasicBlock(func_decl, "entry");
-        std::cout << "here" << std::endl;
         LLVMPositionBuilderAtEnd(builder, func_entry);
 
         // add argument variables to symbol table, to be done for functions with arguments
 
+        for(int i = 0; i < nargs; i++){
+            ASTNode* arg = node->m_children[1]->m_children[1]->m_children[i];
+            std::string id = arg->m_children[1]->m_value;
+            LLVMValueRef p = LLVMBuildAlloca(builder, getLLVMType(arg->m_children[0]->m_value,context), id.c_str());
+            LLVMBuildStore(builder,LLVMGetParam(func_decl,i),p);
+            std::cout << "here" << std::endl;
+            syms[id] = p;
+        }
+
         push_scope();
-        func_args.push(std::map<std::string, LLVMValueRef>());
+        func_args.push(syms);
 
         // generate code for code block
         // generate_code(node->m_children[2]);
@@ -241,29 +284,82 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
 
     }
 
+    else if (node->m_type == Function_Call){
+        std::string func_name = node->m_children[0]->m_value;
+        LLVMValueRef id = get_func(func_name);
+        if (id) {
+            if (node->m_children.size() == 1) { 
+                // no arguments to the function
+                LLVMValueRef* args;
+                std::string func_call = func_name + "()";
+                return LLVMBuildCall2(builder, LLVMTypeOf(id), id, args, 0, func_call.c_str());
+            }
+            else {
+                std::vector<LLVMValueRef> func_args;
+                std::string func_call = func_name + "()";
+
+                for(int i = 0; i < (node->m_children[1]->m_children).size(); i++) {
+                    LLVMValueRef arg = generate_code(node->m_children[1]->m_children[i], local, return_type);
+                    LLVMValueRef arg_value = get_node_value(node->m_children[1]->m_children[i], LLVMTypeOf(arg), arg);
+                    func_args.push_back(arg_value);
+                }
+
+
+                LLVMValueRef* args = func_args.data();
+                int nargs = func_args.size();
+
+                std::cout << "done till here" << std::endl;
+                return LLVMBuildCall2(builder, LLVMTypeOf(id), id, args, nargs, func_call.c_str());
+            }
+        }
+    }
+
     else if (node->m_type == Block){
+        std::cout << "generating block with return type " << LLVMPrintTypeToString(return_type) << std::endl;
         for(int i = 0; i < node->m_children.size(); i++){
             generate_code(node->m_children[i], local, return_type);
         }
     }
 
+    else if (node->m_type == Assignment_Expression && node->m_children[1]->m_value == "="){
+        std::string var_name = node->m_children[0]->m_value;
+        LLVMValueRef mem = generate_code(node->m_children[0], local, return_type);
+        LLVMValueRef rhs = generate_code(node->m_children[2], local, return_type);
+        rhs = get_node_value(node->m_children[2], LLVMTypeOf(rhs), rhs);
+        return LLVMBuildStore(builder, rhs, mem);
+    }
+
     else if (node->m_type == Identifier){
         std::string name = node->m_value;
-        
+
         LLVMValueRef id = var_to_val(name);
+        LLVMValueRef id_f = get_func_arg(name);
+
         if (id) {
             return id;
         }
+
+        else if (id_f){
+            return id_f;
+        }
+
+
+        else{
+            std::cout << "NO DECLARATION" << std::endl;
+            return nullptr;
+        }
+        
 
         // else check if function argument
     }
 
     else if (node->m_type == Jump_Statement && node->m_value == "RETURN"){
+        std::cout << "returning from a function of return type " << LLVMPrintTypeToString(return_type) << std::endl;
         if(return_type == LLVMVoidType()) {
             return LLVMBuildRetVoid(builder);
         } 
         else {
-            LLVMValueRef return_val = generate_code(node->m_children[0], true, return_type);\
+            LLVMValueRef return_val = generate_code(node->m_children[0], true, return_type);
             if (return_val == nullptr) std::cout << "nullpointer returned" << std::endl;
             return_val = get_node_value(node->m_children[0], return_type, return_val);
             return LLVMBuildRet(builder, return_val);
@@ -271,6 +367,22 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
     }
 
 
+    else if (node->m_type == Multiplicative_Expression){
+        LLVMValueRef op1 = generate_code(node->m_children[0], local, return_type);
+        LLVMValueRef op2 = generate_code(node->m_children[1], local, return_type);
+
+        if (LLVMGetTypeKind(LLVMTypeOf(op1)) == LLVMFloatTypeKind && 
+            LLVMGetTypeKind(LLVMTypeOf(op2)) == LLVMFloatTypeKind) {
+                op1 = get_node_value(node->m_children[0], LLVMFloatType(), op1);
+                op2 = get_node_value(node->m_children[1], LLVMFloatType(), op2);
+                return LLVMBuildBinOp(builder, ((LLVMOpcode)(LLVMMul + 1)), op1, op2, "_flt_op");
+        }
+        else {                
+                op1 = get_node_value(node->m_children[0], LLVMInt32Type(), op1);
+                op2 = get_node_value(node->m_children[1], LLVMInt32Type(), op2);
+                return LLVMBuildBinOp(builder, LLVMMul, op1, op2, "_int_op");
+        }
+    }
 
 
 
@@ -290,6 +402,10 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
     else if (node->m_type == I_Constant){
         std::cout << "processing constant " << node->m_value << std::endl;
         return LLVMConstInt(LLVMInt32TypeInContext(context), stoi(node->m_value), false);
+    }
+
+    else if (node->m_type == F_Constant){
+        LLVMConstReal(LLVMFloatTypeInContext(contextStack.top()), stof(node->m_value));
     }
 
 

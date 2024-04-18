@@ -4,6 +4,7 @@
 #include "ASTNode.hpp"
 #include "c.tab.hpp"
 #include "codegen.cpp"
+#include "scope.cpp"
 
 
 #include <vector> 
@@ -25,6 +26,7 @@ std::vector<std::string> nodeTypetoString{
     "Function_Definition",
     "Declaration_Specifiers",
     "Declaration",
+    "Declaration_List",
     "Storage_Class_Specifier",
     "Type_Specifier", 
     "Declarator",
@@ -73,7 +75,8 @@ std::vector<std::string> nodeTypetoString{
     "Type_Qualifier_List",
     "Pointer",
     "Init_Declarator_List", 
-    "Init_Declarator"
+    "Init_Declarator",
+    "Function_Call"
 };
 
 
@@ -142,6 +145,16 @@ main(int argc, char **argv)
 
   print(root);
   // root->print();
+
+  scopeStack scopes = scopeStack();
+    bool scopechk = scopes.check_node(root);
+    if (!scopechk) {
+      std::cout << "Scoping check failed." << std::endl;
+      ret = 1;
+      printf("retv = %d\n", ret);
+      exit(1);
+    }
+    
   printf("retv = %d\n", ret);
 
   // codegen();

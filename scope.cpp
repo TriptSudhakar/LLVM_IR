@@ -74,7 +74,13 @@ bool scopeStack::check_node(ASTNode* node) {
     Scoping rules of the language */
 
     // Logic for checking node based on type of node here
+    if(node == nullptr) return true;
     NodeType type = node->m_type;
+
+    ASTNode* iter;
+    ASTNode* block;
+    std::string functionName, var;
+    bool check = false;
 
     switch (type)
     {
@@ -88,8 +94,7 @@ bool scopeStack::check_node(ASTNode* node) {
         case (NodeType::External_Declaration):
             return check_node(node->m_children[0]);
         case (NodeType::Function_Definition):
-            std::string functionName;
-            ASTNode* iter = node->m_children[1]; // declarator
+            iter = node->m_children[1]; // declarator
             while(iter->m_children.size()==2) {
                 iter = iter->m_children[1];
             }
@@ -103,17 +108,27 @@ bool scopeStack::check_node(ASTNode* node) {
 
             scopes.top().add_symbol(functionName);
             enter_scope();
-            bool check = check_node(node->m_children[2]);
+            if(node->m_children.size() == 3){
+                check = check_node(node->m_children[2]);
+            }
+            else{
+                for(auto decl : node->m_children[2]->m_children)
+                {
+                    check = check_node(decl);
+                    if(!check) return false;
+                }
+                check = check_node(node->m_children[3]);
+            }
             exit_scope();
             return check;
         case (NodeType::Declaration):
             for(auto decl : node->m_children[1]->m_children) // init declarator list
             {
-                ASTNode* iter = decl->m_children[0]; 
+                iter = decl->m_children[0]; 
                 while(iter->m_children.size()==2) {
                     iter = iter->m_children[1];
                 }
-                std::string var = iter->m_children[0]->m_value;
+                var = iter->m_children[0]->m_value;
 
                 if(scopes.top().check_decl(var))
                 {
@@ -124,19 +139,19 @@ bool scopeStack::check_node(ASTNode* node) {
             }
             return true;
         case (NodeType::Compound_Statement):
-            ASTNode* block = node->m_children[0];
+            block = node->m_children[0];
             if(block->m_value == "") return true;
 
             for(auto child : block->m_children)
             {
-                bool flag = check_node(child);
-                if(!flag) return false;
+                check = check_node(child);
+                if(!check) return false;
             }
             return true;
         case (NodeType::Selection_Statement):
             if(node->m_value == "IF")
             {
-                bool check = check_node(node->m_children[0]);
+                check = check_node(node->m_children[0]);
                 if(!check) return false;
 
                 enter_scope();
@@ -146,7 +161,7 @@ bool scopeStack::check_node(ASTNode* node) {
             }
             if(node->m_value == "IF ELSE")
             {
-                bool check = check_node(node->m_children[0]);
+                check = check_node(node->m_children[0]);
                 if(!check) return false;
 
                 enter_scope();
@@ -163,13 +178,48 @@ bool scopeStack::check_node(ASTNode* node) {
         case (NodeType::Iteration_Statement):
             if(node->m_value == "WHILE")
             {
-                bool check = check_node(node->m_children[0]);
+                check = check_node(node->m_children[0]);
                 if(!check) return false;
+
                 enter_scope();
                 check = check_node(node->m_children[1]);
                 if(!check) return false;
                 exit_scope();
             }
+            return true;
+        case (NodeType::Jump_Statement):
+            if((node->m_value == "RETURN") && (node->m_children.size() > 0))
+            {
+                return check_node(node->m_children[0]);
+            }
+            return true;
+        case (NodeType::Expression):
+        case (NodeType::Assignment_Expression):
+        case (NodeType::Conditional_Expression):
+        case (NodeType::Logical_Or_Expression):
+        case (NodeType::Logical_And_Expression):
+        case (NodeType::Inclusive_Or_Expression):
+        case (NodeType::Exclusive_Or_Expression):
+        case (NodeType::And_Expression):
+        case (NodeType::Equality_Expression):
+        case (NodeType::Relational_Expression):
+        case (NodeType::Shift_Expression):
+        case (NodeType::Additive_Expression):
+        case (NodeType::Multiplicative_Expression):
+        case (NodeType::Unary_Expression):
+        case (NodeType::Postfix_Expression):
+        case (NodeType::Argument_Expression_List):
+            for(auto child : node->m_children)
+            {
+                check = check_node(child);
+                if(!check) return false;
+            }
+            return true;
+        case (NodeType::Cast_Expression):
+            return check_node(node->m_children[1]);
+        case (NodeType::Identifier):
+            return scopes.top().check_decl(node->m_value);
+        default:
             return true;
     }
     return true;

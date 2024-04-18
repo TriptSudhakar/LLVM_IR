@@ -21,6 +21,8 @@ public:
         std::stack<LLVMContextRef> contextStack;
         std::stack<LLVMBuilderRef> builderStack;
         std::vector<LLVMBasicBlockRef> labels;
+
+        std::map<std::string, LLVMTypeRef> function_types;
        
         // constructor method
         Codegen(); 
@@ -30,6 +32,8 @@ public:
 
         LLVMValueRef var_to_val(std::string var_name);
         LLVMValueRef get_func(std::string func_name);
+        LLVMValueRef get_func_arg(std::string var_name);
+
 
         LLVMValueRef generate_code(ASTNode* node, bool local, LLVMTypeRef return_type);
         LLVMValueRef declare_variable(std::string name, LLVMTypeRef type, bool local);
