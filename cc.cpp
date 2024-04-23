@@ -159,6 +159,6 @@ main(int argc, char **argv)
 
   // codegen();
   Codegen cgen = Codegen();
-  cgen.convert_to_ir(root, "ir_dump.txt");
+  cgen.convert_to_ir(root, "ir_dump.ll");
   exit(0);
 }

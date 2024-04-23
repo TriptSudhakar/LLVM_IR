@@ -282,11 +282,20 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
 
         return nullptr;
 
-    }
+    }   
 
     else if (node->m_type == Function_Call){
         std::string func_name = node->m_children[0]->m_value;
         LLVMValueRef id = get_func(func_name);
+
+        LLVMTypeRef func_type = function_types[func_name]; 
+        int func_nparams = LLVMCountParamTypes(func_type);
+
+        vector<LLVMTypeRef> param_types (func_nparams);
+        LLVMTypeRef* param_types_p = param_types.data();
+        LLVMGetParamTypes(func_type, param_types_p);
+
+
         if (id) {
             if (node->m_children.size() == 1) { 
                 // no arguments to the function
@@ -300,7 +309,7 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
 
                 for(int i = 0; i < (node->m_children[1]->m_children).size(); i++) {
                     LLVMValueRef arg = generate_code(node->m_children[1]->m_children[i], local, return_type);
-                    LLVMValueRef arg_value = get_node_value(node->m_children[1]->m_children[i], LLVMTypeOf(arg), arg);
+                    LLVMValueRef arg_value = get_node_value(node->m_children[1]->m_children[i], param_types_p[i], arg);
                     func_args.push_back(arg_value);
                 }
 
@@ -309,7 +318,7 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
                 int nargs = func_args.size();
 
                 std::cout << "done till here" << std::endl;
-                return LLVMBuildCall2(builder, LLVMTypeOf(id), id, args, nargs, func_call.c_str());
+                return LLVMBuildCall2(builder, function_types[func_name], id, args, nargs, func_call.c_str());
             }
         }
     }
@@ -406,6 +415,10 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
 
     else if (node->m_type == F_Constant){
         LLVMConstReal(LLVMFloatTypeInContext(contextStack.top()), stof(node->m_value));
+    }
+
+    else if (node->m_type == String){
+        return LLVMBuildGlobalStringPtr(builder, node->m_value.c_str(), "const_string");
     }
 
 
