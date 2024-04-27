@@ -258,7 +258,7 @@ init_declarator_list
 	;
 
 init_declarator
-	: declarator '=' initializer							{ $$ = new ASTNode(Init_Declarator), $$->pushChild($1); $$->pushChild($3); }
+	: declarator '=' initializer							{ $$ = new ASTNode(Init_Declarator), $$->pushChild($1); $$->pushChild($3); $$->m_value = "="; }
 	| declarator											{ $$ = new ASTNode(Init_Declarator), $$->pushChild($1); }
 	;
 
@@ -370,7 +370,7 @@ alignment_specifier
 	;
 
 declarator
-	: pointer direct_declarator 		{ $$ = new ASTNode(Declarator); $$->pushChild($1); $$->pushChild($2); $$->m_value = "ptr"; }
+	: pointer direct_declarator 		{ $$ = new ASTNode(Declarator); $$->pushChild($1); $$->pushChild($2); }
 	// | direct_declarator					{ $$ = new ASTNode(Declarator); $$->pushChild($1); }
 	| direct_declarator					{ $$ = $1; }	
 	;

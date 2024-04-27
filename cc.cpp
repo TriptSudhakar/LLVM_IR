@@ -152,28 +152,28 @@ main(int argc, char **argv)
 
 
 
-  // scopeStack scopes = scopeStack();
-  // bool scopechk = scopes.check_node(root);
-  // if (!scopechk) {
-  //   std::cout << "Scoping check failed." << std::endl;
-  //   ret = 1;
-  //   printf("retv = %d\n", ret);
-  //   exit(1);
-  // }
-  // std::cout<< "Scoping check passed :) \n";
+  scopeStack scopes = scopeStack();
+  bool scopechk = scopes.check_node(root);
+  if (!scopechk) {
+    std::cout << "Scoping check failed." << std::endl;
+    ret = 1;
+    printf("retv = %d\n", ret);
+    exit(1);
+  }
+  std::cout<< "Scoping check passed :) \n";
     
-  // typeChecker tcheck = typeChecker();
-  // int typecheck = 0;
-  // typecheck = tcheck.check_node(root);
-  // if (typecheck < 0) {
-  //   std::cout << "Program failed the typing check..." << std::endl; 
-  //   ret = 1;
-  //   printf("retv = %d\n", ret);
-  //   exit(1);
-  // }
-  // std::cout<< "Typing check passed :) \n";
+  typeChecker tcheck = typeChecker();
+  int typecheck = 0;
+  typecheck = tcheck.check_node(root);
+  if (typecheck < 0) {
+    std::cout << "Program failed the typing check..." << std::endl; 
+    ret = 1;
+    printf("retv = %d\n", ret);
+    exit(1);
+  }
+  std::cout<< "Typing check passed :) \n";
 
-  // printf("retv = %d\n", ret);
+  printf("retv = %d\n", ret);
 
 
 

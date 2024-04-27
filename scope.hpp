@@ -2,24 +2,23 @@
 #include <stack>
 #include <vector>
 #include <iostream>
+#include <map>
 
 
 class scope {
     public:
         std::vector<std::string> symbols;
-        std::vector<std::string> locals;
+        std::map<std::string, bool> isVariadic;
     
     scope();
 
-    scope(std::vector<std::string>, std::vector<std::string>);
+    scope(std::vector<std::string>);
 
     void print_symbols();
 
     void add_symbol(std::string);
 
-    bool check_decl(std::string, bool);
-
-    bool check_scope(std::string, bool);
+    bool check_scope(std::string);
 
 };
 

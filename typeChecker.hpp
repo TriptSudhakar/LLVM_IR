@@ -9,6 +9,7 @@ class typeChecker {
     public:
         std::stack<std::map<std::string,int>> symbols;
         std::map<std::string, std::vector<int>> fargs;
+        std::map<std::string, bool> isVariadic;
 
         std::map<int,std::string> getType;
 

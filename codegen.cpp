@@ -9,6 +9,7 @@
 #include "ASTNode.hpp"
 #include "codegen.hpp"
 
+
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/BasicBlock.h"
@@ -168,19 +169,10 @@ LLVMTypeRef getLLVMType(std::string type, LLVMContextRef context) {
     else if (type == "CHAR") {
         return LLVMInt8TypeInContext(context);
     } 
-
-    // else {
-    //     std::string cmp; 
-    //     cmp += type_qualifier.back();
-    //     if (cmp == "*") { 
-    //         type_qualifier.pop_back();
-    //         LLVMTypeRef base_type = getLLVMType(type_qualifier, context);
-    //         return LLVMPointerType(base_type,0);
-    //     } else {
-    //         return LLVMInt32TypeInContext(context);
-    //     }
-    //     // return NULL;
-    // }
+    else if (type == "CHAR*") {
+        LLVMTypeRef base_type = getLLVMType("CHAR", context);
+        return LLVMPointerType(base_type, 0);
+    }
 
     return nullptr;
 }
@@ -190,8 +182,6 @@ LLVMTypeRef getLLVMType(std::string type, LLVMContextRef context) {
 
 
 LLVMValueRef Codegen::get_node_value(ASTNode* node, LLVMTypeRef type, LLVMValueRef mem) {
-    // std::cout << type << std::endl;
-
     std::cout << "called get_node_value with type argument " << LLVMPrintTypeToString(type) << std::endl;
 
     if (node->m_type != Identifier) {
@@ -428,15 +418,15 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
         else if (node->m_value == "-"){
             opcode = LLVMSub;
         }
-        else if (node->m_value == "*"){
-            opcode = LLVMMul;
-        }
-        else if (node->m_value == "/"){
-            opcode = LLVMSDiv;
-        }
-        else if (node->m_value == "%"){
-            opcode = LLVMSRem;
-        }
+        // else if (node->m_value == "*"){
+        //     opcode = LLVMMul;
+        // }
+        // else if (node->m_value == "/"){
+        //     opcode = LLVMSDiv;
+        // }
+        // else if (node->m_value == "%"){
+        //     opcode = LLVMSRem;
+        // }
 
         if (LLVMGetTypeKind(LLVMTypeOf(op1)) == LLVMFloatTypeKind && 
             LLVMGetTypeKind(LLVMTypeOf(op2)) == LLVMFloatTypeKind) {
@@ -446,23 +436,6 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
                 return LLVMBuildBinOp(builder, opcode, op1, op2, "_int_op");
         }
     }
-
-    // else if (node->m_type == Additive_Expression && node->m_value == "-"){
-    //     LLVMValueRef op1 = generate_code(node->m_children[0], local, return_type);
-    //     LLVMValueRef op2 = generate_code(node->m_children[1], local, return_type);
-
-    //     if (LLVMGetTypeKind(LLVMTypeOf(op1)) == LLVMFloatTypeKind && 
-    //         LLVMGetTypeKind(LLVMTypeOf(op2)) == LLVMFloatTypeKind) {
-    //             op1 = get_node_value(node->m_children[0], LLVMFloatType(), op1);
-    //             op2 = get_node_value(node->m_children[1], LLVMFloatType(), op2);
-    //             return LLVMBuildBinOp(builder, ((LLVMOpcode)(LLVMSub + 1)), op1, op2, "_flt_op");
-    //     }
-    //     else {                
-    //             op1 = get_node_value(node->m_children[0], LLVMInt32Type(), op1);
-    //             op2 = get_node_value(node->m_children[1], LLVMInt32Type(), op2);
-    //             return LLVMBuildBinOp(builder, LLVMSub, op1, op2, "_int_op");
-    //     }
-    // }
 
     else if (node->m_type == Declaration){
 
@@ -508,7 +481,13 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
                 for(int i = 0; i < nargs; i++){
                     ASTNode* arg = dir_decl->m_children[1]->m_children[i];
                     // if (node->m_value == "...")
-                    func_params.push_back(getLLVMType(arg->m_children[0]->m_value, context));
+                    if (arg->m_children.size() >= 2 && arg->m_children[1]->m_children.size() >= 2 && 
+                        arg->m_children[1]->m_children[0]->m_type == Pointer){
+                           func_params.push_back(getLLVMType(arg->m_children[0]->m_value + "*", context)); 
+                    }
+                    else{
+                        func_params.push_back(getLLVMType(arg->m_children[0]->m_value, context));
+                    }
                 }
 
                 LLVMTypeRef* param_types = func_params.data();
@@ -531,6 +510,17 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
             
             for(int i = 0; i < ndecl; i++){
                 declare_variable(node->m_children[1]->m_children[i]->m_children[0]->m_value, var_type);
+                if (node->m_children[1]->m_children[i]->m_value == "="){
+                    ASTNode* assign_exp = new ASTNode(Assignment_Expression);
+                    assign_exp->m_children.push_back(node->m_children[1]->m_children[i]->m_children[0]);
+                    ASTNode* eq_sign = new ASTNode(Assignment_Operator);
+                    eq_sign->m_value = "=";
+                    assign_exp->m_children.push_back(eq_sign);
+                    assign_exp->m_children.push_back(node->m_children[1]->m_children[i]->m_children[1]);
+                    generate_code(assign_exp, local, return_type);
+                    delete assign_exp; 
+                    delete eq_sign;
+                }
             }
         }
 
@@ -550,9 +540,24 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
         std::cout << node->m_value << std::endl;
         std::string str = node->m_value;
         str = str.substr(1, str.size() - 2);
+
+        std::string final_str = "";
+        bool esc = false;
+        for(int i = 0; i < str.size(); i++){
+            if((!esc) && (!(str[i] == '\\'))){
+                final_str.push_back(str[i]);
+            }
+            else if (esc && str[i] == 'n'){
+                final_str.push_back('\n');
+                esc = false;
+            }
+            else if (str[i] == '\\'){
+                esc = true;
+            }
+        }
         std::cout << str << std::endl;
 
-        return LLVMBuildGlobalStringPtr(builder, str.c_str(), "const_string");
+        return LLVMBuildGlobalStringPtr(builder, final_str.c_str(), "const_string");
     }
 
     else if (node->m_type == Relational_Expression){
@@ -601,7 +606,6 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
             }
     }
 
-    
     else if (node->m_type == Selection_Statement && node->m_value == "IF"){
         LLVMBasicBlockRef current_block = LLVMGetInsertBlock(builder);
         LLVMValueRef func = LLVMGetBasicBlockParent(current_block);
@@ -696,6 +700,60 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
         LLVMPositionBuilderAtEnd(builder, endwhile_block);
     }
 
+    else if (node->m_type == Iteration_Statement && node->m_value == "DO WHILE"){    
+        LLVMBasicBlockRef current_block = LLVMGetInsertBlock(builder);
+        LLVMValueRef func = LLVMGetBasicBlockParent(current_block);
+
+        LLVMBasicBlockRef while_block = LLVMAppendBasicBlock(func, "while");
+        LLVMBasicBlockRef cond_block = LLVMAppendBasicBlock(func, "cond");
+        LLVMBasicBlockRef endwhile_block = LLVMAppendBasicBlock(func, "endwhile");
+
+        LLVMBuildBr(builder, while_block);
+        LLVMPositionBuilderAtEnd(builder, while_block);
+
+        push_scope();
+        generate_code(node->m_children[0], local, return_type);
+        LLVMBuildBr(builder, cond_block);
+        pop_scope();
+
+        LLVMPositionBuilderAtEnd(builder, cond_block);
+        LLVMValueRef while_cond = generate_code(node->m_children[1], true, return_type);
+        LLVMBuildCondBr(builder, while_cond, while_block, endwhile_block);
+        LLVMPositionBuilderAtEnd(builder, endwhile_block);
+    }
+
+    else if (node->m_type == Iteration_Statement && node->m_value == "FOR"){
+        generate_code(node->m_children[0], local, return_type);
+        
+        LLVMBasicBlockRef current_block = LLVMGetInsertBlock(builder);
+
+        LLVMValueRef func = LLVMGetBasicBlockParent(current_block);
+        LLVMBasicBlockRef for_block = LLVMAppendBasicBlock(func, "for");
+        LLVMBasicBlockRef cond_block = LLVMAppendBasicBlock(func, "cond");
+        LLVMBasicBlockRef increment_block = LLVMAppendBasicBlock(func, "incr");
+        LLVMBasicBlockRef end_for = LLVMAppendBasicBlock(func, "endfor");
+
+        LLVMBuildBr(builder, cond_block);
+
+        LLVMPositionBuilderAtEnd(builder, for_block);
+        
+        push_scope();
+        generate_code(node->m_children[3], local, return_type);
+        LLVMBuildBr(builder, increment_block);
+        pop_scope();
+
+        LLVMPositionBuilderAtEnd(builder, increment_block);
+        generate_code(node->m_children[2], local, return_type);
+        LLVMBuildBr(builder, cond_block);
+
+        LLVMPositionBuilderAtEnd(builder, cond_block);
+        LLVMValueRef forCond = generate_code(node->m_children[1],local, return_type);
+        LLVMBuildCondBr(builder, forCond, for_block, end_for);
+
+        LLVMPositionBuilderAtEnd(builder, end_for);
+
+    }
+
     else{
         for(auto x : node->m_children){
             generate_code(x, local, return_type);
@@ -767,6 +825,11 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
 
 void Codegen::convert_to_ir(ASTNode* node, std::string file) {
     generate_code(node);
+
+    std::cout << "finishing codegen, starting optimizations" << std::endl;
+
+
+
 
     std::ofstream outfile;
     std::string filename = file;

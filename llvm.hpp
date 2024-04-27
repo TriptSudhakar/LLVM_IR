@@ -13,9 +13,11 @@
 #include <llvm-c/BitWriter.h>
 #include <llvm-c/Core.h>
 #include <llvm-c/ExecutionEngine.h>
-// #include <llvm-c/Initialization.h>
+#include <llvm-c/Initialization.h>
 #include <llvm-c/Target.h>
-// #include <llvm-c/Transforms/Scalar.h>
+#include <llvm/Transforms/Scalar.h>
+
+
 
 
 #include "llvm/ADT/APFloat.h"
