@@ -195,6 +195,7 @@ LLVMValueRef Codegen::get_node_value(ASTNode* node, LLVMTypeRef type, LLVMValueR
     std::cout << "called get_node_value with type argument " << LLVMPrintTypeToString(type) << std::endl;
 
     if (node->m_type != Identifier) {
+        std::cout << "returning here" << std::endl;
         return mem;
     } 
 
@@ -240,8 +241,9 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
         }
 
         int nargs = 0;
-        if ((node->m_children[1]->m_children).size() > 1 && node->m_children[1]->m_children[1]->m_type == Parameter_List){
-            nargs = (node->m_children[1]->m_children[1]->m_children).size();
+        if ((node->m_children[1]->m_children).size() > 1 
+            && node->m_children[1]->m_children[1]->m_type == Parameter_List){
+                nargs = (node->m_children[1]->m_children[1]->m_children).size();
         }
 
         std::cout << "number of arguments: " << nargs << std::endl;
@@ -390,6 +392,7 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
             LLVMValueRef return_val = generate_code(node->m_children[0], true, return_type);
             if (return_val == nullptr) std::cout << "nullpointer returned" << std::endl;
             return_val = get_node_value(node->m_children[0], return_type, return_val);
+            std::cout << "returning from function" << std::endl; 
             return LLVMBuildRet(builder, return_val);
         }
     }
@@ -411,49 +414,127 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
         }
     }
 
-    else if (node->m_type == Additive_Expression && node->m_value == "+"){
+    else if (node->m_type == Additive_Expression){
         LLVMValueRef op1 = generate_code(node->m_children[0], local, return_type);
         LLVMValueRef op2 = generate_code(node->m_children[1], local, return_type);
+        op1 = get_node_value(node->m_children[0], LLVMFloatType(), op1);
+        op2 = get_node_value(node->m_children[1], LLVMFloatType(), op2);
+
+        LLVMOpcode opcode;
+
+        if (node->m_value == "+"){
+            opcode = LLVMAdd;
+        }
+        else if (node->m_value == "-"){
+            opcode = LLVMSub;
+        }
+        else if (node->m_value == "*"){
+            opcode = LLVMMul;
+        }
+        else if (node->m_value == "/"){
+            opcode = LLVMSDiv;
+        }
+        else if (node->m_value == "%"){
+            opcode = LLVMSRem;
+        }
 
         if (LLVMGetTypeKind(LLVMTypeOf(op1)) == LLVMFloatTypeKind && 
             LLVMGetTypeKind(LLVMTypeOf(op2)) == LLVMFloatTypeKind) {
-                op1 = get_node_value(node->m_children[0], LLVMFloatType(), op1);
-                op2 = get_node_value(node->m_children[1], LLVMFloatType(), op2);
-                return LLVMBuildBinOp(builder, ((LLVMOpcode)(LLVMAdd + 1)), op1, op2, "_flt_op");
+                return LLVMBuildBinOp(builder, ((LLVMOpcode)(opcode + 1)), op1, op2, "_flt_op");
         }
         else {                
-                op1 = get_node_value(node->m_children[0], LLVMInt32Type(), op1);
-                op2 = get_node_value(node->m_children[1], LLVMInt32Type(), op2);
-                return LLVMBuildBinOp(builder, LLVMAdd, op1, op2, "_int_op");
+                return LLVMBuildBinOp(builder, opcode, op1, op2, "_int_op");
         }
     }
 
-    else if (node->m_type == Additive_Expression && node->m_value == "-"){
-        LLVMValueRef op1 = generate_code(node->m_children[0], local, return_type);
-        LLVMValueRef op2 = generate_code(node->m_children[1], local, return_type);
+    // else if (node->m_type == Additive_Expression && node->m_value == "-"){
+    //     LLVMValueRef op1 = generate_code(node->m_children[0], local, return_type);
+    //     LLVMValueRef op2 = generate_code(node->m_children[1], local, return_type);
 
-        if (LLVMGetTypeKind(LLVMTypeOf(op1)) == LLVMFloatTypeKind && 
-            LLVMGetTypeKind(LLVMTypeOf(op2)) == LLVMFloatTypeKind) {
-                op1 = get_node_value(node->m_children[0], LLVMFloatType(), op1);
-                op2 = get_node_value(node->m_children[1], LLVMFloatType(), op2);
-                return LLVMBuildBinOp(builder, ((LLVMOpcode)(LLVMSub + 1)), op1, op2, "_flt_op");
-        }
-        else {                
-                op1 = get_node_value(node->m_children[0], LLVMInt32Type(), op1);
-                op2 = get_node_value(node->m_children[1], LLVMInt32Type(), op2);
-                return LLVMBuildBinOp(builder, LLVMSub, op1, op2, "_int_op");
-        }
-    }
+    //     if (LLVMGetTypeKind(LLVMTypeOf(op1)) == LLVMFloatTypeKind && 
+    //         LLVMGetTypeKind(LLVMTypeOf(op2)) == LLVMFloatTypeKind) {
+    //             op1 = get_node_value(node->m_children[0], LLVMFloatType(), op1);
+    //             op2 = get_node_value(node->m_children[1], LLVMFloatType(), op2);
+    //             return LLVMBuildBinOp(builder, ((LLVMOpcode)(LLVMSub + 1)), op1, op2, "_flt_op");
+    //     }
+    //     else {                
+    //             op1 = get_node_value(node->m_children[0], LLVMInt32Type(), op1);
+    //             op2 = get_node_value(node->m_children[1], LLVMInt32Type(), op2);
+    //             return LLVMBuildBinOp(builder, LLVMSub, op1, op2, "_int_op");
+    //     }
+    // }
 
     else if (node->m_type == Declaration){
-        LLVMTypeRef var_type = getLLVMType(node->m_children[0]->m_value, context);
 
-        int ndecl = (node->m_children[1]->m_children).size();
-        std::cout << "declared " << ndecl << " variables of type " << node->m_children[0]->m_value << std::endl;
-        
-        for(int i = 0; i < ndecl; i++){
-            declare_variable(node->m_children[1]->m_children[i]->m_children[0]->m_value, var_type);
+        if (node->m_children[1]->m_children[0]->m_children[0]->m_type == Direct_Declarator){
+            ASTNode* dir_decl = node->m_children[1]->m_children[0]->m_children[0];
+            std::string return_type_str = node->m_children[0]->m_value;
+            std::cout << "return type of function is " << return_type_str << std::endl;
+            LLVMTypeRef func_return_type = getLLVMType(return_type_str, context);
+            const char* func_name = dir_decl->m_children[0]->m_value.c_str();
+            std::cout << "function name is " << func_name << std::endl;
+
+            LLVMValueRef func_decl;
+            std::map<std::string, LLVMValueRef> ftable = funcs.top();
+
+            std::map<std::string, LLVMValueRef> syms;
+
+            // if function is already declared
+            if (ftable.find(func_name) != ftable.end()) {
+                return ftable[func_name];
+            }
+
+            int nargs = 0;
+            if ((dir_decl->m_children).size() > 1 
+                && dir_decl->m_children[1]->m_type == Parameter_List){
+                    nargs = (dir_decl->m_children[1]->m_children).size();
+            }
+
+            std::cout << "number of arguments: " << nargs << std::endl;
+
+
+            if (nargs == 0) {
+                LLVMTypeRef func_type = LLVMFunctionType(func_return_type, {}, 0, 0);
+                func_decl = LLVMAddFunction(cmodule, func_name, func_type);
+                unsigned int ct = LLVMCountParams(func_decl);
+                funcs.top()[func_name] = func_decl;
+                function_types[dir_decl->m_children[0]->m_value] = func_type;
+            }
+
+            else {
+                // there are arguments, to be filled later
+                std::vector<LLVMTypeRef> func_params;
+                // bool is_variadic = false;
+                for(int i = 0; i < nargs; i++){
+                    ASTNode* arg = dir_decl->m_children[1]->m_children[i];
+                    // if (node->m_value == "...")
+                    func_params.push_back(getLLVMType(arg->m_children[0]->m_value, context));
+                }
+
+                LLVMTypeRef* param_types = func_params.data();
+                int is_variadic = 0;
+                if (dir_decl->m_children.size() >= 2 && dir_decl->m_children[1]->m_value == "..."){
+                    is_variadic = 1;
+                }
+                LLVMTypeRef func_type = LLVMFunctionType(func_return_type, param_types, nargs, is_variadic);
+                func_decl = LLVMAddFunction(cmodule, func_name, func_type);
+                funcs.top()[func_name] = func_decl;   
+                function_types[dir_decl->m_children[0]->m_value] = func_type;
+            }
         }
+
+        else{
+            LLVMTypeRef var_type = getLLVMType(node->m_children[0]->m_value, context);
+
+            int ndecl = (node->m_children[1]->m_children).size();
+            std::cout << "declared " << ndecl << " variables of type " << node->m_children[0]->m_value << std::endl;
+            
+            for(int i = 0; i < ndecl; i++){
+                declare_variable(node->m_children[1]->m_children[i]->m_children[0]->m_value, var_type);
+            }
+        }
+
+
     }
 
     else if (node->m_type == I_Constant){
@@ -466,7 +547,12 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
     }
 
     else if (node->m_type == String){
-        return LLVMBuildGlobalStringPtr(builder, node->m_value.c_str(), "const_string");
+        std::cout << node->m_value << std::endl;
+        std::string str = node->m_value;
+        str = str.substr(1, str.size() - 2);
+        std::cout << str << std::endl;
+
+        return LLVMBuildGlobalStringPtr(builder, str.c_str(), "const_string");
     }
 
     else if (node->m_type == Relational_Expression){
@@ -478,9 +564,24 @@ LLVMValueRef Codegen::generate_code(ASTNode* node, bool local = true, LLVMTypeRe
             float_op = LLVMRealOGT;
         }
         else if (node->m_value == "<") {
-            std::cout << "generating code for < condition" << std::endl;
             int_op = LLVMIntSLT;
             float_op = LLVMRealOLT;
+        }
+        else if (node->m_value == "<=") {
+            int_op = LLVMIntSLE;
+            float_op = LLVMRealOLE;
+        }
+        else if (node->m_value == ">=") {
+            int_op = LLVMIntSGE;
+            float_op = LLVMRealOGE;
+        }
+        else if (node->m_value == "==") {
+            int_op = LLVMIntEQ;
+            float_op = LLVMRealOEQ;
+        }
+        else if (node->m_value == "!=") {
+            int_op = LLVMIntNE;
+            float_op = LLVMRealONE;
         }
 
 

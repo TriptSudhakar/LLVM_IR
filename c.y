@@ -370,7 +370,7 @@ alignment_specifier
 	;
 
 declarator
-	: pointer direct_declarator 		{ $$ = new ASTNode(Declarator); $$->pushChild($1); $$->pushChild($2); }
+	: pointer direct_declarator 		{ $$ = new ASTNode(Declarator); $$->pushChild($1); $$->pushChild($2); $$->m_value = "ptr"; }
 	// | direct_declarator					{ $$ = new ASTNode(Declarator); $$->pushChild($1); }
 	| direct_declarator					{ $$ = $1; }	
 	;
