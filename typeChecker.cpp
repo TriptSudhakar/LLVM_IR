@@ -3,18 +3,12 @@
 
 typeChecker::typeChecker() {
     getType[0] = "INT";
-    // getType[1] = "FLOAT";
-    // getType[2] = "CHAR*";
-    // getType[3] = "INTARR";
-    // getType[4] = "FLOATARR";
-    getType[5] = "VOID";
+    getType[1] = "FLOAT";
+    getType[2] = "VOID";
 
     getTypeId["INT"]    = 0;
-    // getTypeId["FLOAT"]  = 1;
-    // getTypeId["CHAR*"]  = 2;
-    // getTypeId["INTARR"]   = 3;
-    // getTypeId["FLOATARR"]   = 4;
-    getTypeId["VOID"]   = 5;
+    getTypeId["FLOAT"]  = 1;
+    getTypeId["VOID"]   = 2;
 
     std::map<std::string,int> initmap;
     symbols.push(initmap);
@@ -42,7 +36,7 @@ int typeChecker::lookup_sym(std::string id){
 }
 
 int typeChecker::check_node(ASTNode* node) {
-    if (node == NULL) return 5;
+    if (node == NULL) return 2;
     NodeType type = node->m_type;
 
     switch (type) {
@@ -67,31 +61,46 @@ int typeChecker::check_node(ASTNode* node) {
 
             enter_scope();
             int check = 0;
-            if(node->m_children.size() > 2) {
-                for(auto child : node->m_children[2]->m_children) {
-                    check = check_node(child);
-                    if(check < 0) return -1;
-                }
+            if(node->m_children[1]->m_children.size() > 1) {
+                for(auto child : ((node->m_children[1])->m_children[1])->m_children) {
+                    std::string argType = child->m_children[0]->m_value;
+                    std::string argName = child->m_children[1]->m_value;
 
-                check = check_node(node->m_children[3]);
-                if(check < 0) return -1;
-            }
-            else
-            {
-                for(auto child : node->m_children[2]->m_children) {
-                    check = check_node(child);
-                    if(check < 0) return -1;
+                    add_symbol(argName, argType);
+                    fargs[functionName].push_back(getTypeId[argType]);
                 }
             }
+
+            check = check_node(node->m_children[2]);
             exit_scope();
+
+            if(check < 0) return -1;
+            std::cout<<"Function " << functionName << " returns " << functionType << std::endl;
             return getTypeId[functionType];
+        }
+        case (NodeType::Function_Call):
+        {
+            std::string functionName = node->m_children[0]->m_value;
+            if(fargs.find(functionName) == fargs.end()) return -1;
+
+            int argc = 0;
+            for(auto child : node->m_children[1]->m_children) {
+                int check = check_node(child);
+                if(check < 0 || check != fargs[functionName][argc++]) return -1;
+            }
+            return lookup_sym(functionName);
         }
         case (NodeType::Declaration):
         {
             std::string variableType = (node->m_children[0])->m_value;
             for(auto child : node->m_children[1]->m_children) {
-                std::string id = ((child->m_children[0])->m_children[0])->m_value;
+                std::string id = child->m_children[0]->m_value;
                 add_symbol(id, variableType);
+
+                if(child->m_children.size() > 1) {
+                    int check = check_node(child->m_children[1]);
+                    if(check < 0 || check != getTypeId[variableType]) return -1;
+                }
             }
             return getTypeId[variableType];
         }
@@ -99,7 +108,7 @@ int typeChecker::check_node(ASTNode* node) {
         {
             ASTNode* block = node->m_children[0];
             int check = 0;
-            if(block->m_value == "") return 5;
+            if(block->m_value == "") return 2;
 
             for(auto child : block->m_children) {
                 check = check_node(child);
@@ -133,7 +142,7 @@ int typeChecker::check_node(ASTNode* node) {
                 if(check < 0) return -1;
                 exit_scope();
             }
-            return 5;
+            return 2;
         }
         case (NodeType::Iteration_Statement):
         {
@@ -146,19 +155,107 @@ int typeChecker::check_node(ASTNode* node) {
                 if(check < 0) return -1;
                 exit_scope();
             }
-            return 5;
+            return 2;
         }
         case (NodeType::Jump_Statement):
         {
             if(node->m_value == "RETURN") {
                 return check_node(node->m_children[0]);
             }
-            return 5;
+            return 2;
         }
         case (NodeType::Expression):
         {
-            
+            int check = 0;
+            for(auto child : node->m_children) {
+                check = check_node(child);
+                if(check < 0) return -1;
+            }
+            return check;
         }
+        case (NodeType::Assignment_Expression):
+        {
+            int check = 0;
+            check = check_node(node->m_children[2]);
+            if(check < 0 || check != check_node(node->m_children[0])) return -1;
+            if(check == 1)
+            {
+                std::string op = node->m_children[1]->m_value;
+                if(op != "=" && op != "+=" && op != "-=" && op != "*=" && op != "/=") return -1;
+            }
+            return check;
+        }
+        case (NodeType::Conditional_Expression):
+        {
+            int check = 0;
+            int left = 0;
+            int right = 0;
+            check = check_node(node->m_children[0]);
+            if(check != 0) return -1;
+            left = check_node(node->m_children[1]);
+            if(left < 0) return -1;
+            right = check_node(node->m_children[2]);
+            if(right < 0) return -1;
+
+            if(left != right) return -1;
+            check = left;
+            return check;
+        }
+        case (NodeType::Logical_Or_Expression):
+        case (NodeType::Logical_And_Expression):
+        case (NodeType::Inclusive_Or_Expression):
+        case (NodeType::Exclusive_Or_Expression):
+        case (NodeType::And_Expression):
+        {
+            int check = 0;
+            for(auto child : node->m_children) {
+                check = check_node(child);
+                if(check != 0) return -1;
+            }
+            return check;
+        }
+        case (NodeType::Equality_Expression):
+        case (NodeType::Relational_Expression):
+        {
+            int check = 0;
+            for(auto child : node->m_children) {
+                check = check_node(child);
+                if(check < 0) return -1;
+            }
+            return 0;
+        }
+        case (NodeType::Shift_Expression):
+        case (NodeType::Additive_Expression):
+        case (NodeType::Multiplicative_Expression):
+        {
+            int check = 0;
+            for(auto child : node->m_children) {
+                check = check_node(child);
+                if(check < 0) return -1;
+            }
+            return check;
+        }
+        case (NodeType::Unary_Expression):
+        {
+            int check = 0;
+            check = check_node(node->m_children.back());
+            if(check < 0) return -1;
+            return check;
+        }
+        case (NodeType::Postfix_Expression):
+        {
+            int check = 0;
+            check = check_node(node->m_children[0]);
+            if(check < 0) return -1;
+            return check;
+        }
+        case (NodeType::Identifier):
+        {
+            std::string var = node->m_value;
+            return symbols.top()[var];
+        }
+        case (NodeType::I_Constant): return 0;
+        case (NodeType::F_Constant): return 1;
     }
     return 0;
 }

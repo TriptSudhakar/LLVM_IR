@@ -94,11 +94,7 @@ bool scopeStack::check_node(ASTNode* node) {
         case (NodeType::External_Declaration):
             return check_node(node->m_children[0]);
         case (NodeType::Function_Definition):
-            iter = node->m_children[1]; // declarator
-            while(iter->m_children.size()==2) {
-                iter = iter->m_children[1];
-            }
-            functionName = iter->m_children[0]->m_value;
+            functionName = ((node->m_children[1])->m_children[0])->m_value;
 
             if(scopes.top().check_scope(functionName))
             {

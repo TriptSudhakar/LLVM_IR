@@ -5,6 +5,7 @@
 #include "c.tab.hpp"
 #include "codegen.cpp"
 #include "scope.cpp"
+#include "typeChecker.cpp"
 
 
 #include <vector> 
@@ -149,15 +150,27 @@ main(int argc, char **argv)
 
   // root->print();
 
-  // scopeStack scopes = scopeStack();
-  //   bool scopechk = scopes.check_node(root);
-  //   if (!scopechk) {
-  //     std::cout << "Scoping check failed." << std::endl;
-  //     ret = 1;
-  //     printf("retv = %d\n", ret);
-  //     exit(1);
-  //   }
+  scopeStack scopes = scopeStack();
+  bool scopechk = scopes.check_node(root);
+  if (!scopechk) {
+    std::cout << "Scoping check failed." << std::endl;
+    ret = 1;
+    printf("retv = %d\n", ret);
+    exit(1);
+  }
+  std::cout<< "Scoping check passed :) \n";
     
+  typeChecker tcheck = typeChecker();
+  int typecheck = 0;
+  typecheck = tcheck.check_node(root);
+  if (typecheck < 0) {
+    std::cout << "Program failed the typing check..." << std::endl; 
+    ret = 1;
+    printf("retv = %d\n", ret);
+    exit(1);
+  }
+  std::cout<< "Typing check passed :) \n";
+
   printf("retv = %d\n", ret);
 
   // codegen();
