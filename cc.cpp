@@ -144,16 +144,19 @@ main(int argc, char **argv)
   int ret = yyparse();
 
   print(root);
+
+  std::cout << "i am here" << std::endl;
+
   // root->print();
 
-  scopeStack scopes = scopeStack();
-    bool scopechk = scopes.check_node(root);
-    if (!scopechk) {
-      std::cout << "Scoping check failed." << std::endl;
-      ret = 1;
-      printf("retv = %d\n", ret);
-      exit(1);
-    }
+  // scopeStack scopes = scopeStack();
+  //   bool scopechk = scopes.check_node(root);
+  //   if (!scopechk) {
+  //     std::cout << "Scoping check failed." << std::endl;
+  //     ret = 1;
+  //     printf("retv = %d\n", ret);
+  //     exit(1);
+  //   }
     
   printf("retv = %d\n", ret);
 

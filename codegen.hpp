@@ -41,4 +41,6 @@ public:
         LLVMValueRef get_node_value(ASTNode* node, LLVMTypeRef type, LLVMValueRef mem);
 
         void convert_to_ir(ASTNode* node, std::string file);
+
+        bool all_branches_return(ASTNode* node);
 };
