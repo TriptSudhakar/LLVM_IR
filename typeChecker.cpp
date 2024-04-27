@@ -104,13 +104,10 @@ int typeChecker::check_node(ASTNode* node) {
             }
             return getTypeId[variableType];
         }
-        case (NodeType::Compound_Statement):
+        case (NodeType::Block):
         {
-            ASTNode* block = node->m_children[0];
-            int check = 0;
-            if(block->m_value == "") return 2;
-
-            for(auto child : block->m_children) {
+            int check = 2;
+            for(auto child : node->m_children) {
                 check = check_node(child);
                 if(check < 0) return -1;
             }
@@ -225,15 +222,25 @@ int typeChecker::check_node(ASTNode* node) {
             return 0;
         }
         case (NodeType::Shift_Expression):
-        case (NodeType::Additive_Expression):
-        case (NodeType::Multiplicative_Expression):
         {
             int check = 0;
             for(auto child : node->m_children) {
                 check = check_node(child);
-                if(check < 0) return -1;
+                if(check != 0) return -1;
             }
             return check;
+        }
+        case (NodeType::Additive_Expression):
+        case (NodeType::Multiplicative_Expression):
+        {
+            int ans = 0;
+            int check = 0;
+            for(auto child : node->m_children) {
+                check = check_node(child);
+                if(check < 0) return -1;
+                ans = std::max(ans, check);
+            }
+            return ans;
         }
         case (NodeType::Unary_Expression):
         {

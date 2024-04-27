@@ -25,16 +25,6 @@ void scope::add_symbol(std::string id) {
     locals.push_back(id);
 }
 
-bool scope::check_decl(std::string id, bool top = false) {
-    int n = locals.size();
-    for (int i = 0; i < n; i++) {
-        if (locals[i] == id) {
-            return true;
-        }
-    }
-    return false;
-}
-
 bool scope::check_scope(std::string id, bool top = false) {
     int n = symbols.size();
     for (int i = 0; i < n; i++) {
@@ -78,7 +68,6 @@ bool scopeStack::check_node(ASTNode* node) {
     NodeType type = node->m_type;
 
     ASTNode* iter;
-    ASTNode* block;
     std::string functionName, var;
     bool check = false;
 
@@ -104,41 +93,48 @@ bool scopeStack::check_node(ASTNode* node) {
 
             scopes.top().add_symbol(functionName);
             enter_scope();
-            if(node->m_children.size() == 3){
-                check = check_node(node->m_children[2]);
-            }
-            else{
-                for(auto decl : node->m_children[2]->m_children)
-                {
-                    check = check_node(decl);
-                    if(!check) return false;
+            if(node->m_children[1]->m_children.size() > 1) {
+                for(auto child : ((node->m_children[1])->m_children[1])->m_children) {
+                    std::string argName = child->m_children[1]->m_value;
+
+                    if(scopes.top().check_scope(argName))
+                    {
+                        std::cout << "Variable " << argName << " already defined" << std::endl;
+                        return false;
+                    }
+                    scopes.top().add_symbol(argName);
                 }
-                check = check_node(node->m_children[3]);
             }
+            std::cout<<"Function " << functionName << " returns " << (node->m_children[0])->m_value << std::endl;
+            scopes.top().print_symbols();
+
+            check = check_node(node->m_children[2]);
             exit_scope();
             return check;
+        case (NodeType::Function_Call):
+            functionName = node->m_children[0]->m_value;
+            if(!scopes.top().check_scope(functionName)) return false;
+
+            for(auto child : node->m_children[1]->m_children) {
+                int check = check_node(child);
+                if(!check) return false;
+            }
+            return true;
         case (NodeType::Declaration):
             for(auto decl : node->m_children[1]->m_children) // init declarator list
             {
-                iter = decl->m_children[0]; 
-                while(iter->m_children.size()==2) {
-                    iter = iter->m_children[1];
-                }
-                var = iter->m_children[0]->m_value;
+                var = decl->m_children[0]->m_value;
 
-                if(scopes.top().check_decl(var))
+                if(scopes.top().check_scope(var))
                 {
                     std::cout << "Variable " << var << " already defined" << std::endl;
                     return false;
                 }
-                scopes.top().add_symbol(decl->m_value);
+                scopes.top().add_symbol(var);
             }
             return true;
-        case (NodeType::Compound_Statement):
-            block = node->m_children[0];
-            if(block->m_value == "") return true;
-
-            for(auto child : block->m_children)
+        case (NodeType::Block):
+            for(auto child : node->m_children)
             {
                 check = check_node(child);
                 if(!check) return false;
@@ -189,8 +185,11 @@ bool scopeStack::check_node(ASTNode* node) {
                 return check_node(node->m_children[0]);
             }
             return true;
-        case (NodeType::Expression):
         case (NodeType::Assignment_Expression):
+            if(!scopes.top().check_scope(node->m_children[0]->m_value)) return false;
+            check = check_node(node->m_children[2]);
+            return check;
+        case (NodeType::Expression):
         case (NodeType::Conditional_Expression):
         case (NodeType::Logical_Or_Expression):
         case (NodeType::Logical_And_Expression):
@@ -214,9 +213,14 @@ bool scopeStack::check_node(ASTNode* node) {
         case (NodeType::Cast_Expression):
             return check_node(node->m_children[1]);
         case (NodeType::Identifier):
-            return scopes.top().check_decl(node->m_value);
-        default:
+            var = node->m_value;
+            check = scopes.top().check_scope(var);
+            return check;
+        case (NodeType::I_Constant):
+        case (NodeType::F_Constant):
             return true;
+        default:
+            return false;
     }
     return true;
 }

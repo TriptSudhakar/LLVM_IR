@@ -26,8 +26,8 @@ std::vector<std::string> nodeTypetoString{
     "External_Declaration",
     "Function_Definition",
     "Declaration_Specifiers",
-    "Declaration",
     "Declaration_List",
+    "Declaration",
     "Storage_Class_Specifier",
     "Type_Specifier", 
     "Declarator",
@@ -76,7 +76,7 @@ std::vector<std::string> nodeTypetoString{
     "Type_Qualifier_List",
     "Pointer",
     "Init_Declarator_List", 
-    "Init_Declarator",
+    "Init_Declarator", 
     "Function_Call"
 };
 
