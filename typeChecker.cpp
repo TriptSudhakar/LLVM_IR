@@ -262,8 +262,6 @@ int typeChecker::check_node(ASTNode* node) {
             check = left;
             return check;
         }
-        case (NodeType::Logical_Or_Expression):
-        case (NodeType::Logical_And_Expression):
         case (NodeType::Inclusive_Or_Expression):
         case (NodeType::Exclusive_Or_Expression):
         case (NodeType::And_Expression):
@@ -275,6 +273,8 @@ int typeChecker::check_node(ASTNode* node) {
             }
             return check;
         }
+        case (NodeType::Logical_Or_Expression):
+        case (NodeType::Logical_And_Expression):
         case (NodeType::Equality_Expression):
         case (NodeType::Relational_Expression):
         {

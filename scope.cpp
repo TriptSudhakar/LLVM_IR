@@ -232,7 +232,6 @@ bool scopeStack::check_node(ASTNode* node) {
         case (NodeType::Shift_Expression):
         case (NodeType::Additive_Expression):
         case (NodeType::Multiplicative_Expression):
-        case (NodeType::Unary_Expression):
         case (NodeType::Postfix_Expression):
         case (NodeType::Argument_Expression_List):
             for(auto child : node->m_children)
@@ -241,6 +240,7 @@ bool scopeStack::check_node(ASTNode* node) {
                 if(!check) return false;
             }
             return true;
+        case (NodeType::Unary_Expression):
         case (NodeType::Cast_Expression):
             return check_node(node->m_children[1]);
         case (NodeType::Identifier):
@@ -252,6 +252,8 @@ bool scopeStack::check_node(ASTNode* node) {
         case (NodeType::String):
             return true;
         default:
+            std::cout<<"No matches found\n";
+            std::cout<<node->m_type<<std::endl;
             return false;
     }
     return true;
