@@ -21,6 +21,28 @@ void dce(ASTNode* node){
                         node->m_children.pop_back();
                     }
             }
+            if(child_node->m_type == Selection_Statement && child_node->m_value == "IF ELSE"){
+                bool left = 0;
+                bool right = 0;
+                for(int j = 0; j < child_node->m_children[1]->m_children.size(); j++){
+                    if(child_node->m_children[1]->m_children[j]->m_type == Jump_Statement && child_node->m_children[1]->m_children[j]->m_value == "RETURN"){
+                        left = 1;
+                    }
+                }
+                for(int j = 0; j < child_node->m_children[2]->m_children.size(); j++){
+                    if(child_node->m_children[2]->m_children[j]->m_type == Jump_Statement && child_node->m_children[2]->m_children[j]->m_value == "RETURN"){
+                        right = 1;
+                    }
+                }
+                std::cout<<"left: " << left << " right: " << right << std::endl;
+
+                if(left && right)
+                {
+                    while(node->m_children.back() != node->m_children[i]){
+                        node->m_children.pop_back();
+                    }
+                }
+            }
         }
     }
 
