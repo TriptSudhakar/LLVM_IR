@@ -175,7 +175,10 @@ main(int argc, char **argv)
 
   printf("retv = %d\n", ret);
 
-
+  constant_folding(root);
+  dce(root);
+  // constant_folding(root);
+  print(root);
 
 
   // codegen();

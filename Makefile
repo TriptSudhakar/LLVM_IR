@@ -22,7 +22,7 @@
 # 	g++ test.cpp -lm -ll `$(LLVM_CONFIG) --cxxflags --libs --ldflags --system-libs` -o $@ 
 
 ##################################################################
-cc: cc.cpp c.tab.cpp c.lex.cpp codegen.cpp codegen.hpp scope.cpp scope.hpp llvm.hpp scope.cpp scope.hpp typeChecker.cpp typeChecker.hpp
+cc: cc.cpp c.tab.cpp c.lex.cpp codegen.cpp codegen.hpp scope.cpp scope.hpp llvm.hpp scope.cpp scope.hpp typeChecker.cpp typeChecker.hpp optimizer.cpp optimizer.hpp 
 	g++ c.tab.cpp c.lex.cpp cc.cpp -lm -ll `llvm-config --cxxflags --libs --ldflags --system-libs` -o $@
 
 c.tab.cpp c.tab.hpp: c.y
